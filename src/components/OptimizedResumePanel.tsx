@@ -10,18 +10,27 @@ import {
   FileText,
   X,
   Minimize2,
-  Maximize2
+  Maximize2,
+  TrendingUp,
+  TrendingDown,
+  Minus
 } from 'lucide-react';
 
 interface OptimizedResumePanelProps {
   resumeText: string;
+  score?: number | null;
+  previousScore?: number | null;
   onClose: () => void;
 }
 
-export function OptimizedResumePanel({ resumeText, onClose }: OptimizedResumePanelProps) {
+export function OptimizedResumePanel({ resumeText, score, previousScore, onClose }: OptimizedResumePanelProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+
+  const scoreDiff = score !== null && score !== undefined && previousScore !== null && previousScore !== undefined
+    ? score - previousScore 
+    : null;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(resumeText);
@@ -92,6 +101,9 @@ export function OptimizedResumePanel({ resumeText, onClose }: OptimizedResumePan
         >
           <FileText className="w-4 h-4" />
           Optimized Resume
+          {score !== null && score !== undefined && (
+            <span className="ml-1 text-xs bg-white/20 px-1.5 py-0.5 rounded">{score}%</span>
+          )}
           <Maximize2 className="w-4 h-4" />
         </Button>
       </motion.div>
@@ -106,7 +118,7 @@ export function OptimizedResumePanel({ resumeText, onClose }: OptimizedResumePan
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-gradient-to-r from-green-500/10 to-emerald-500/10">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
             <FileText className="w-4 h-4 text-green-600" />
           </div>
@@ -114,6 +126,40 @@ export function OptimizedResumePanel({ resumeText, onClose }: OptimizedResumePan
             <h3 className="font-semibold text-foreground text-sm">Optimized Resume</h3>
             <span className="text-xs text-muted-foreground">AI Rewritten</span>
           </div>
+          
+          {/* Score Display */}
+          {score !== null && score !== undefined && (
+            <div className="flex items-center gap-2 ml-2 px-3 py-1.5 rounded-lg bg-background/50 border border-border">
+              <span className="text-xs text-muted-foreground">ATS Score:</span>
+              <span className={`text-lg font-bold ${
+                score >= 80 ? 'text-green-600' : score >= 60 ? 'text-yellow-600' : 'text-red-600'
+              }`}>
+                {score}%
+              </span>
+              {scoreDiff !== null && (
+                <span className={`flex items-center text-xs font-medium ${
+                  scoreDiff > 0 ? 'text-green-600' : scoreDiff < 0 ? 'text-red-600' : 'text-muted-foreground'
+                }`}>
+                  {scoreDiff > 0 ? (
+                    <>
+                      <TrendingUp className="w-3 h-3 mr-0.5" />
+                      +{scoreDiff}
+                    </>
+                  ) : scoreDiff < 0 ? (
+                    <>
+                      <TrendingDown className="w-3 h-3 mr-0.5" />
+                      {scoreDiff}
+                    </>
+                  ) : (
+                    <>
+                      <Minus className="w-3 h-3 mr-0.5" />
+                      0
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <Button
@@ -158,7 +204,7 @@ export function OptimizedResumePanel({ resumeText, onClose }: OptimizedResumePan
       </div>
 
       {/* Content */}
-      <ScrollArea className="h-[400px] p-4">
+      <ScrollArea className="h-[500px] p-4">
         <pre className="text-sm text-foreground whitespace-pre-wrap font-sans leading-relaxed">
           {resumeText}
         </pre>
