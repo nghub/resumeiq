@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Header } from '@/components/Header';
 import { FileUpload } from '@/components/FileUpload';
 import { AnalysisLoader } from '@/components/AnalysisLoader';
 import { ScoreBreakdownCard } from '@/components/ScoreBreakdownCard';
@@ -116,7 +115,6 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <AnalysisLoader isAnalyzing={analyzing} />
-      <Header />
       
       <main className="container py-8 max-w-7xl">
         <motion.div

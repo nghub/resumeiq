@@ -1,9 +1,16 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { FileText, History } from 'lucide-react';
+import { FileText, History, Moon, Sun, Snowflake } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTheme } from '@/components/ThemeProvider';
 
-export function Header() {
+interface HeaderProps {
+  onSnowToggle?: () => void;
+  isSnowing?: boolean;
+}
+
+export function Header({ onSnowToggle, isSnowing }: HeaderProps) {
+  const { theme, setTheme } = useTheme();
   return (
     <motion.header 
       className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl"
@@ -19,7 +26,7 @@ export function Header() {
           <span className="text-xl font-bold text-foreground">ResumeAI</span>
         </Link>
 
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-2">
           <Link to="/dashboard">
             <Button variant="ghost" size="sm">Dashboard</Button>
           </Link>
@@ -29,6 +36,26 @@ export function Header() {
               History
             </Button>
           </Link>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={onSnowToggle}
+          >
+            <Snowflake className={`w-4 h-4 transition-colors ${isSnowing ? 'text-primary' : ''}`} />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          >
+            <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">Toggle theme</span>
+          </Button>
         </nav>
       </div>
     </motion.header>
