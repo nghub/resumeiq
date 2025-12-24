@@ -20,7 +20,7 @@ export function ResultsHeader({ score, summary, onNewScan }: ResultsHeaderProps)
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-primary" />
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">Relevancy Score</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">ATS Score</h2>
         </div>
         <Button variant="outline" size="sm" onClick={onNewScan} className="gap-2">
           <RotateCcw className="w-4 h-4" />

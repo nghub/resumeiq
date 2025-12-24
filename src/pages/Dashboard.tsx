@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { FileUpload } from '@/components/FileUpload';
 import { AnalysisLoader } from '@/components/AnalysisLoader';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Sparkles, 
@@ -31,6 +32,7 @@ interface KeywordItem {
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
@@ -44,6 +46,34 @@ export default function Dashboard() {
   const [summary, setSummary] = useState<string>('');
   const [keywordDensity, setKeywordDensity] = useState<KeywordItem[]>([]);
   const [feedback, setFeedback] = useState<LineFeedback[]>([]);
+
+  // Save scan to history for logged-in users
+  const saveScanToHistory = useCallback(async (
+    overallScore: number,
+    scoreBreakdown: ScoreBreakdown,
+    feedbackData: LineFeedback[],
+    resumeTitle?: string,
+    jobTitle?: string,
+    company?: string
+  ) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase.from('scans').insert({
+        user_id: user.id,
+        overall_score: overallScore,
+        score_breakdown: scoreBreakdown as any,
+        feedback: feedbackData as any,
+        status: 'completed'
+      });
+
+      if (error) {
+        console.error('Failed to save scan:', error);
+      }
+    } catch (error) {
+      console.error('Error saving scan to history:', error);
+    }
+  }, [user]);
 
   const handleAnalyze = async () => {
     if (!resumeText.trim() || !jobDescription.trim()) {
@@ -65,6 +95,13 @@ export default function Dashboard() {
       setKeywordDensity(data.keywordDensity || []);
       setFeedback(data.feedback || []);
       setActiveTab('results');
+
+      // Save to history if user is logged in
+      await saveScanToHistory(
+        data.overallScore,
+        data.scoreBreakdown,
+        data.feedback || []
+      );
 
       toast({ title: 'Analysis complete!', description: `Your ATS score is ${data.overallScore}%` });
     } catch (error: any) {
@@ -107,9 +144,42 @@ export default function Dashboard() {
     }
   };
 
-  const handleUpdateResume = (newText: string) => {
+  // Re-analyze resume after copilot updates it to get new ATS score
+  const handleUpdateResume = async (newText: string) => {
     setResumeText(newText);
-    toast({ title: 'Resume updated', description: 'Your resume has been updated with the AI suggestions.' });
+    toast({ title: 'Resume updated', description: 'Re-analyzing for updated ATS score...' });
+
+    // Re-analyze the updated resume
+    if (jobDescription.trim()) {
+      setAnalyzing(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('analyze-resume', {
+          body: { resumeText: newText, jobDescription }
+        });
+
+        if (error) throw error;
+
+        setScore(data.overallScore);
+        setBreakdown(data.scoreBreakdown);
+        setSummary(data.summary || 'Analysis complete. Review the detailed breakdown below.');
+        setKeywordDensity(data.keywordDensity || []);
+        setFeedback(data.feedback || []);
+
+        // Save updated scan to history
+        await saveScanToHistory(
+          data.overallScore,
+          data.scoreBreakdown,
+          data.feedback || []
+        );
+
+        toast({ title: 'Score updated!', description: `Your new ATS score is ${data.overallScore}%` });
+      } catch (error: any) {
+        console.error('Re-analysis error:', error);
+        toast({ title: 'Score update failed', description: 'Resume was updated but score refresh failed.', variant: 'destructive' });
+      } finally {
+        setAnalyzing(false);
+      }
+    }
   };
 
   return (
