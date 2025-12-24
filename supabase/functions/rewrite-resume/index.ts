@@ -11,13 +11,94 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeText, jobDescription, feedback } = await req.json();
+    const { resumeText, jobDescription, feedback, userMessage, chatHistory } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
+    // Chat mode - Resume Copilot
+    if (userMessage) {
+      const systemPrompt = `You are an expert Resume Copilot AI assistant. You help users optimize their resumes for ATS (Applicant Tracking Systems) and improve their chances of getting interviews.
+
+Your capabilities:
+1. Rewrite entire resumes or specific sections
+2. Add metrics and quantifiable achievements
+3. Write cover letters tailored to job descriptions
+4. Fix grammar and improve language
+5. Suggest improvements and optimizations
+6. Answer questions about resume best practices
+
+Context:
+${resumeText ? `CURRENT RESUME:\n${resumeText}\n` : 'No resume uploaded yet.'}
+${jobDescription ? `TARGET JOB DESCRIPTION:\n${jobDescription}\n` : 'No job description provided.'}
+
+Guidelines:
+- Be helpful, friendly, and professional
+- When rewriting, preserve truthfulness - never fabricate experience
+- Use action verbs and quantify achievements where possible
+- Inject relevant keywords naturally from the job description
+- Keep responses concise but thorough
+- If asked to rewrite the full resume, return it formatted clearly
+- Use markdown for formatting when appropriate`;
+
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        ...(chatHistory || []).slice(-10), // Keep last 10 messages for context
+        { role: 'user', content: userMessage }
+      ];
+
+      console.log('Calling AI Gateway for copilot chat...');
+      
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages,
+          temperature: 0.7,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI Gateway error:', response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        throw new Error(`AI Gateway error: ${response.status}`);
+      }
+
+      const aiResponse = await response.json();
+      const content = aiResponse.choices?.[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('Empty response from AI');
+      }
+
+      // Check if the response contains a full resume rewrite
+      const isFullRewrite = userMessage.toLowerCase().includes('rewrite resume') || 
+                           userMessage.toLowerCase().includes('full resume') ||
+                           userMessage.toLowerCase().includes('target 95');
+      
+      return new Response(JSON.stringify({ 
+        response: content,
+        rewrittenResume: isFullRewrite ? content : null
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Original rewrite mode - batch feedback processing
     const systemPrompt = `You are an expert resume writer specializing in ATS optimization. Your task is to rewrite resume lines to maximize ATS compatibility while maintaining truthfulness.
 
 Rules:
