@@ -27,7 +27,9 @@ Your analysis must include:
    - experience: How relevant the work experience is (0-100)
    - keywords: How many important keywords are present (0-100)
    - roleAlignment: How well the resume aligns with the role (0-100)
-3. Line-by-line feedback for improvement opportunities
+3. A brief 2-3 sentence summary of the candidate's fit for the role
+4. Top 6 keywords from the job description with their count in JD and resume
+5. Prioritized action plan with 5-8 specific improvements
 
 Return ONLY valid JSON in this exact format:
 {
@@ -38,13 +40,18 @@ Return ONLY valid JSON in this exact format:
     "keywords": 70,
     "roleAlignment": 80
   },
+  "summary": "Brief 2-3 sentence summary of the candidate's strengths and fit for the role.",
+  "keywordDensity": [
+    { "keyword": "Python", "jdCount": 8, "resumeCount": 5 },
+    { "keyword": "Machine Learning", "jdCount": 6, "resumeCount": 3 }
+  ],
   "feedback": [
     {
       "id": "unique-id-1",
       "lineIndex": 0,
-      "originalText": "The exact text from resume",
-      "issue": "What's wrong with this line",
-      "suggestion": "How to improve it",
+      "originalText": "The exact text from resume that needs improvement",
+      "issue": "Clear, specific issue title (e.g., 'Quantify DevEx Impact')",
+      "suggestion": "Complete rewritten version of this section with specific improvements applied. Make it ready to copy-paste.",
       "scoreImpact": 5,
       "type": "keyword|vague|missing|impact",
       "section": "Summary|Experience|Skills|Education"
@@ -52,7 +59,7 @@ Return ONLY valid JSON in this exact format:
   ]
 }
 
-Focus on actionable, specific feedback. Identify missing keywords, vague language, and opportunities to quantify achievements.`;
+Focus on actionable, specific feedback. The suggestion should be a complete, ready-to-use replacement text that the user can copy and paste directly into their resume.`;
 
     const userPrompt = `RESUME:
 ${resumeText}
