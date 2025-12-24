@@ -7,7 +7,6 @@ import { ResultsHeader } from '@/components/ResultsHeader';
 import { KeywordDensityCard } from '@/components/KeywordDensityCard';
 import { ActionPlanCard } from '@/components/ActionPlanCard';
 import { ResumeCopilot } from '@/components/ResumeCopilot';
-import { ScoreComparison } from '@/components/ScoreComparison';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -306,21 +305,15 @@ export default function Dashboard() {
             <TabsContent value="results" className="space-y-6">
               {score !== null && breakdown && (
                 <>
-                  {/* Score Comparison after Copilot rewrite */}
-                  {showComparison && previousScore !== null && (
-                    <ScoreComparison
-                      oldScore={previousScore}
-                      newScore={score}
-                      onDismiss={handleDismissComparison}
-                    />
-                  )}
-
                   {/* Top Section: Score + Breakdown */}
                   <div className="grid lg:grid-cols-2 gap-6">
                     <ResultsHeader 
                       score={score} 
                       summary={summary}
                       onNewScan={handleNewScan}
+                      previousScore={previousScore}
+                      showComparison={showComparison}
+                      onDismissComparison={handleDismissComparison}
                     />
                     <ScoreBreakdownCard breakdown={breakdown} />
                   </div>
