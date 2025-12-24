@@ -95,16 +95,13 @@ export default function Index() {
               and AI-powered rewrites to reach 95%+ match rates.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex justify-center">
               <Link to="/dashboard">
-                <Button size="xl" className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto">
+                <Button size="xl" className="bg-primary text-primary-foreground hover:bg-primary/90">
                   Start Optimizing
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
-              <Button size="xl" variant="outline" className="border-background/30 text-background hover:bg-background/10 w-full sm:w-auto">
-                See How It Works
-              </Button>
             </div>
           </motion.div>
         </div>
