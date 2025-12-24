@@ -94,7 +94,7 @@ export default function Index() {
               Get Your{' '}
               <span className="relative inline-block">
                 {isChristmas && (
-                  <SantaHat className="absolute -top-6 -left-2 md:-top-10 md:-left-3 w-10 h-8 md:w-14 md:h-12 z-10" />
+                  <SantaHat className="absolute -top-5 left-0 md:-top-8 md:-left-1 w-8 h-7 md:w-12 md:h-10 z-10 pointer-events-none" />
                 )}
                 R
               </span>
