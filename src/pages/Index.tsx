@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { useTheme } from '@/components/ThemeProvider';
 import { 
   FileText, 
   Target, 
@@ -44,6 +45,9 @@ const benefits = [
 ];
 
 export default function Index() {
+  const { theme } = useTheme();
+  const isChristmas = theme === 'christmas';
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -86,7 +90,16 @@ export default function Index() {
             </motion.div>
             
             <h1 className="text-4xl md:text-6xl font-bold text-background leading-tight mb-6">
-              Get Your Resume Past Any{' '}
+              Get Your{' '}
+              <span className="relative inline-block">
+                {isChristmas && (
+                  <span className="absolute -top-4 -left-1 md:-top-6 md:-left-2 text-2xl md:text-4xl transform -rotate-12">
+                    🎅
+                  </span>
+                )}
+                R
+              </span>
+              esume Past Any{' '}
               <span className="text-primary">ATS System</span>
             </h1>
             
