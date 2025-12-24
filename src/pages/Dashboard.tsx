@@ -7,6 +7,7 @@ import { ResultsHeader } from '@/components/ResultsHeader';
 import { KeywordDensityCard } from '@/components/KeywordDensityCard';
 import { ActionPlanCard } from '@/components/ActionPlanCard';
 import { ResumeCopilot } from '@/components/ResumeCopilot';
+import { ScoreComparison } from '@/components/ScoreComparison';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -46,6 +47,10 @@ export default function Dashboard() {
   const [summary, setSummary] = useState<string>('');
   const [keywordDensity, setKeywordDensity] = useState<KeywordItem[]>([]);
   const [feedback, setFeedback] = useState<LineFeedback[]>([]);
+
+  // Score comparison state
+  const [previousScore, setPreviousScore] = useState<number | null>(null);
+  const [showComparison, setShowComparison] = useState(false);
 
   // Save scan to history for logged-in users
   const saveScanToHistory = useCallback(async (
@@ -149,6 +154,9 @@ export default function Dashboard() {
     setResumeText(newText);
     toast({ title: 'Resume updated', description: 'Re-analyzing for updated ATS score...' });
 
+    // Store the old score before re-analysis
+    const oldScore = score;
+
     // Re-analyze the updated resume
     if (jobDescription.trim()) {
       setAnalyzing(true);
@@ -159,11 +167,18 @@ export default function Dashboard() {
 
         if (error) throw error;
 
+        // Show comparison if we had a previous score
+        if (oldScore !== null) {
+          setPreviousScore(oldScore);
+          setShowComparison(true);
+        }
+
         setScore(data.overallScore);
         setBreakdown(data.scoreBreakdown);
         setSummary(data.summary || 'Analysis complete. Review the detailed breakdown below.');
         setKeywordDensity(data.keywordDensity || []);
         setFeedback(data.feedback || []);
+        setActiveTab('results');
 
         // Save updated scan to history
         await saveScanToHistory(
@@ -180,6 +195,11 @@ export default function Dashboard() {
         setAnalyzing(false);
       }
     }
+  };
+
+  const handleDismissComparison = () => {
+    setShowComparison(false);
+    setPreviousScore(null);
   };
 
   return (
@@ -286,6 +306,15 @@ export default function Dashboard() {
             <TabsContent value="results" className="space-y-6">
               {score !== null && breakdown && (
                 <>
+                  {/* Score Comparison after Copilot rewrite */}
+                  {showComparison && previousScore !== null && (
+                    <ScoreComparison
+                      oldScore={previousScore}
+                      newScore={score}
+                      onDismiss={handleDismissComparison}
+                    />
+                  )}
+
                   {/* Top Section: Score + Breakdown */}
                   <div className="grid lg:grid-cols-2 gap-6">
                     <ResultsHeader 
