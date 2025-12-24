@@ -159,14 +159,16 @@ export default function Dashboard() {
       setOptimizedResume(newText);
     }
     setResumeText(newText);
-    toast({ title: 'Resume updated', description: 'Re-analyzing for updated ATS score...' });
 
     // Store the old score before re-analysis
     const oldScore = score;
 
-    // Re-analyze the updated resume
+    // Re-analyze the updated resume (silently in background for copilot rewrites)
     if (jobDescription.trim()) {
-      setAnalyzing(true);
+      // Don't show loader for full rewrites - keep copilot visible
+      if (!isFullRewrite) {
+        setAnalyzing(true);
+      }
       try {
         const { data, error } = await supabase.functions.invoke('analyze-resume', {
           body: { resumeText: newText, jobDescription }
@@ -185,7 +187,11 @@ export default function Dashboard() {
         setSummary(data.summary || 'Analysis complete. Review the detailed breakdown below.');
         setKeywordDensity(data.keywordDensity || []);
         setFeedback(data.feedback || []);
-        setActiveTab('results');
+        
+        // Don't redirect to results for full rewrites - stay on copilot
+        if (!isFullRewrite) {
+          setActiveTab('results');
+        }
 
         // Save updated scan to history
         await saveScanToHistory(
@@ -199,7 +205,9 @@ export default function Dashboard() {
         console.error('Re-analysis error:', error);
         toast({ title: 'Score update failed', description: 'Resume was updated but score refresh failed.', variant: 'destructive' });
       } finally {
-        setAnalyzing(false);
+        if (!isFullRewrite) {
+          setAnalyzing(false);
+        }
       }
     }
   };
@@ -378,6 +386,8 @@ export default function Dashboard() {
                 {optimizedResume && (
                   <OptimizedResumePanel 
                     resumeText={optimizedResume}
+                    score={score}
+                    previousScore={previousScore}
                     onClose={() => setOptimizedResume(null)}
                   />
                 )}
