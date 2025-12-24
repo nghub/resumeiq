@@ -7,38 +7,45 @@ interface SantaHatProps {
 export function SantaHat({ className = '' }: SantaHatProps) {
   return (
     <motion.svg
-      viewBox="0 0 100 80"
+      viewBox="0 0 120 90"
       className={className}
-      initial={{ rotate: -15, scale: 0 }}
-      animate={{ rotate: -15, scale: 1 }}
+      initial={{ rotate: -12, scale: 0 }}
+      animate={{ rotate: -12, scale: 1 }}
       transition={{ type: 'spring', stiffness: 200, damping: 15 }}
     >
       {/* Hat body - Red part */}
       <path
-        d="M15 55 Q20 20 50 15 Q80 10 85 45 L75 55 Q50 50 25 55 Z"
-        fill="#c41e3a"
+        d="M25 65 Q30 30 55 20 Q85 10 95 50 L85 62 Q55 55 30 62 Z"
+        fill="#b22234"
       />
-      {/* Hat highlight */}
+      {/* Hat darker shade */}
       <path
-        d="M20 50 Q25 25 50 20 Q65 18 70 35"
-        fill="none"
-        stroke="#e63946"
-        strokeWidth="4"
-        strokeLinecap="round"
+        d="M30 60 Q35 35 55 25 Q75 18 85 45"
+        fill="#8b1a28"
+        opacity="0.4"
       />
-      {/* White fur trim */}
-      <ellipse cx="50" cy="58" rx="38" ry="10" fill="#ffffff" />
-      <ellipse cx="50" cy="58" rx="38" ry="10" fill="url(#furGradient)" />
-      {/* Pompom */}
-      <circle cx="88" cy="42" r="10" fill="#ffffff" />
-      <circle cx="86" cy="40" r="3" fill="#f0f0f0" />
       
-      <defs>
-        <radialGradient id="furGradient" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="100%" stopColor="#e8e8e8" />
-        </radialGradient>
-      </defs>
+      {/* Fluffy white trim - cloud-like bumps */}
+      <ellipse cx="25" cy="68" rx="12" ry="10" fill="#ffffff" />
+      <ellipse cx="38" cy="70" rx="11" ry="9" fill="#ffffff" />
+      <ellipse cx="52" cy="69" rx="12" ry="10" fill="#ffffff" />
+      <ellipse cx="66" cy="70" rx="11" ry="9" fill="#ffffff" />
+      <ellipse cx="80" cy="68" rx="12" ry="10" fill="#ffffff" />
+      <ellipse cx="90" cy="65" rx="10" ry="8" fill="#ffffff" />
+      
+      {/* Inner fluff shadows */}
+      <ellipse cx="30" cy="70" rx="6" ry="5" fill="#e8e8e8" opacity="0.5" />
+      <ellipse cx="55" cy="71" rx="7" ry="5" fill="#e8e8e8" opacity="0.5" />
+      <ellipse cx="75" cy="70" rx="6" ry="5" fill="#e8e8e8" opacity="0.5" />
+      
+      {/* Pompom - fluffy ball */}
+      <circle cx="100" cy="48" r="14" fill="#ffffff" />
+      <circle cx="95" cy="42" r="8" fill="#ffffff" />
+      <circle cx="105" cy="44" r="7" fill="#ffffff" />
+      <circle cx="98" cy="55" r="6" fill="#ffffff" />
+      {/* Pompom shadows */}
+      <circle cx="102" cy="50" r="5" fill="#e8e8e8" opacity="0.4" />
+      <circle cx="96" cy="46" r="3" fill="#f5f5f5" opacity="0.6" />
     </motion.svg>
   );
 }
