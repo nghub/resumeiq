@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/ThemeProvider';
+import { SantaHat } from '@/components/SantaHat';
 import { 
   FileText, 
   Target, 
@@ -93,9 +94,7 @@ export default function Index() {
               Get Your{' '}
               <span className="relative inline-block">
                 {isChristmas && (
-                  <span className="absolute -top-4 -left-1 md:-top-6 md:-left-2 text-2xl md:text-4xl transform -rotate-12">
-                    🎅
-                  </span>
+                  <SantaHat className="absolute -top-6 -left-2 md:-top-10 md:-left-3 w-10 h-8 md:w-14 md:h-12 z-10" />
                 )}
                 R
               </span>
