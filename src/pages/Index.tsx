@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
 import { 
   FileText, 
   Target, 
@@ -45,8 +44,6 @@ const benefits = [
 ];
 
 export default function Index() {
-  const { user } = useAuth();
-
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -64,9 +61,9 @@ export default function Index() {
             </div>
             <span className="text-2xl font-bold text-background">ResumeAI</span>
           </div>
-          <Link to={user ? '/dashboard' : '/auth'}>
+          <Link to="/dashboard">
             <Button variant="hero">
-              {user ? 'Go to Dashboard' : 'Get Started'}
+              Go to Dashboard
             </Button>
           </Link>
         </nav>
@@ -99,7 +96,7 @@ export default function Index() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to={user ? '/dashboard' : '/auth'}>
+              <Link to="/dashboard">
                 <Button size="xl" className="bg-primary text-primary-foreground hover:bg-primary/90 w-full sm:w-auto">
                   Start Optimizing
                   <ArrowRight className="w-5 h-5 ml-2" />
@@ -232,7 +229,7 @@ export default function Index() {
             <p className="text-lg text-background/70 mb-8 max-w-xl mx-auto">
               Join thousands of job seekers who have improved their ATS scores and landed more interviews.
             </p>
-            <Link to={user ? '/dashboard' : '/auth'}>
+            <Link to="/dashboard">
               <Button size="xl" className="bg-primary text-primary-foreground hover:bg-primary/90">
                 Get Started Free
                 <ArrowRight className="w-5 h-5 ml-2" />
