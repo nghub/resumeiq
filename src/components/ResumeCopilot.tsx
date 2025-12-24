@@ -12,7 +12,9 @@ import {
   RefreshCw,
   Copy,
   Check,
-  Loader2
+  Loader2,
+  Download,
+  FileText
 } from 'lucide-react';
 
 interface Message {
@@ -20,6 +22,7 @@ interface Message {
   role: 'assistant' | 'user';
   content: string;
   timestamp: Date;
+  isFullResume?: boolean;
 }
 
 interface ResumeCopilotProps {
@@ -29,8 +32,7 @@ interface ResumeCopilotProps {
   onUpdateResume?: (newText: string) => void;
 }
 
-const suggestedActions = [
-  'Rewrite resume (Target 95%)',
+const defaultActions = [
   'Add metrics to experience',
   'Write a cover letter',
   'Fix grammar errors'
@@ -51,6 +53,7 @@ export function ResumeCopilot({ resumeText, jobDescription, score, onUpdateResum
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [generatedResume, setGeneratedResume] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,6 +61,72 @@ export function ResumeCopilot({ resumeText, jobDescription, score, onUpdateResum
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const handleRewriteResume = async () => {
+    if (!resumeText.trim() || !jobDescription.trim()) {
+      toast({ 
+        title: 'Missing input', 
+        description: 'Please provide both resume and job description first.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: 'Rewrite my entire resume to achieve 95%+ ATS score',
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('rewrite-resume', {
+        body: { 
+          resumeText, 
+          jobDescription, 
+          mode: 'full_rewrite'
+        }
+      });
+
+      if (error) throw error;
+
+      const rewrittenResume = data.rewrittenResume || data.response;
+      setGeneratedResume(rewrittenResume);
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: rewrittenResume,
+        timestamp: new Date(),
+        isFullResume: true
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+
+      if (onUpdateResume && rewrittenResume) {
+        onUpdateResume(rewrittenResume);
+      }
+    } catch (error: any) {
+      console.error('Rewrite error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error while rewriting your resume. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      toast({ 
+        title: 'Error', 
+        description: error.message || 'Failed to rewrite resume.', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSend = async (message?: string) => {
     const text = message || input.trim();
@@ -121,7 +190,61 @@ export function ResumeCopilot({ resumeText, jobDescription, score, onUpdateResum
     await navigator.clipboard.writeText(content);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-    toast({ title: 'Copied!', description: 'Message copied to clipboard.' });
+    toast({ title: 'Copied!', description: 'Resume copied to clipboard.' });
+  };
+
+  const handleDownloadPDF = async (content: string) => {
+    try {
+      // Create a simple HTML document for printing
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast({ title: 'Error', description: 'Please allow popups to download PDF.', variant: 'destructive' });
+        return;
+      }
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Resume</title>
+          <style>
+            body {
+              font-family: 'Times New Roman', Times, serif;
+              font-size: 12pt;
+              line-height: 1.5;
+              margin: 1in;
+              color: #000;
+            }
+            h1, h2, h3 {
+              font-family: Arial, sans-serif;
+              margin-bottom: 0.5em;
+            }
+            h1 { font-size: 18pt; }
+            h2 { font-size: 14pt; border-bottom: 1px solid #000; padding-bottom: 3px; }
+            h3 { font-size: 12pt; }
+            p { margin: 0.5em 0; }
+            ul { margin: 0.5em 0; padding-left: 1.5em; }
+            li { margin-bottom: 0.25em; }
+            @media print {
+              body { margin: 0.5in; }
+            }
+          </style>
+        </head>
+        <body>
+          <pre style="white-space: pre-wrap; font-family: inherit;">${content}</pre>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.print();
+
+      toast({ title: 'PDF Ready', description: 'Use the print dialog to save as PDF.' });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({ title: 'Error', description: 'Failed to generate PDF.', variant: 'destructive' });
+    }
   };
 
   const formatTime = (date: Date) => {
@@ -147,7 +270,10 @@ export function ResumeCopilot({ resumeText, jobDescription, score, onUpdateResum
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setMessages([messages[0]])}
+          onClick={() => {
+            setMessages([messages[0]]);
+            setGeneratedResume(null);
+          }}
           className="text-muted-foreground hover:text-foreground"
         >
           <RefreshCw className="w-4 h-4 mr-1" />
@@ -180,7 +306,7 @@ export function ResumeCopilot({ resumeText, jobDescription, score, onUpdateResum
                         : 'bg-muted/50 text-foreground rounded-tl-sm border border-border'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    <p className={`text-sm whitespace-pre-wrap leading-relaxed ${message.isFullResume ? 'max-h-[300px] overflow-y-auto' : ''}`}>
                       {message.content.split('**').map((part, i) => 
                         i % 2 === 1 ? <strong key={i}>{part}</strong> : part
                       )}
@@ -203,6 +329,30 @@ export function ResumeCopilot({ resumeText, jobDescription, score, onUpdateResum
                       </button>
                     )}
                   </div>
+
+                  {/* Full Resume Actions */}
+                  {message.isFullResume && (
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopy(message.content, message.id)}
+                        className="text-xs"
+                      >
+                        <Copy className="w-3 h-3 mr-1" />
+                        Copy Full Resume
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadPDF(message.content)}
+                        className="text-xs"
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        Download PDF
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -220,7 +370,7 @@ export function ResumeCopilot({ resumeText, jobDescription, score, onUpdateResum
               <div className="bg-muted/50 rounded-2xl rounded-tl-sm px-4 py-3 border border-border">
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">Thinking...</span>
+                  <span className="text-sm text-muted-foreground">Rewriting your resume...</span>
                 </div>
               </div>
             </motion.div>
@@ -234,7 +384,20 @@ export function ResumeCopilot({ resumeText, jobDescription, score, onUpdateResum
           Suggested Actions
         </p>
         <div className="flex flex-wrap gap-2">
-          {suggestedActions.map((action) => (
+          {/* Main Rewrite Button */}
+          <Button
+            variant="default"
+            size="sm"
+            className="text-xs h-8 rounded-full bg-primary hover:bg-primary/90"
+            onClick={handleRewriteResume}
+            disabled={isLoading || !resumeText.trim() || !jobDescription.trim()}
+          >
+            <FileText className="w-3 h-3 mr-1" />
+            Rewrite Resume (Target 95%)
+          </Button>
+
+          {/* Other actions */}
+          {defaultActions.map((action) => (
             <Button
               key={action}
               variant="outline"
@@ -246,6 +409,30 @@ export function ResumeCopilot({ resumeText, jobDescription, score, onUpdateResum
               {action}
             </Button>
           ))}
+
+          {/* Show Copy/Download if resume was generated */}
+          {generatedResume && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-8 rounded-full border-green-500/50 text-green-600 hover:bg-green-50"
+                onClick={() => handleCopy(generatedResume, 'generated')}
+              >
+                <Copy className="w-3 h-3 mr-1" />
+                Copy Resume
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-8 rounded-full border-blue-500/50 text-blue-600 hover:bg-blue-50"
+                onClick={() => handleDownloadPDF(generatedResume)}
+              >
+                <Download className="w-3 h-3 mr-1" />
+                Download PDF
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
