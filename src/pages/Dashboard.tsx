@@ -7,6 +7,7 @@ import { ScoreBreakdownCard } from '@/components/ScoreBreakdownCard';
 import { ResultsHeader } from '@/components/ResultsHeader';
 import { KeywordDensityCard } from '@/components/KeywordDensityCard';
 import { ActionPlanCard } from '@/components/ActionPlanCard';
+import { ResumeCopilot } from '@/components/ResumeCopilot';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,7 +19,8 @@ import {
   FileText, 
   Briefcase,
   ArrowRight,
-  ListChecks
+  ListChecks,
+  MessageSquare
 } from 'lucide-react';
 import type { ScoreBreakdown, LineFeedback } from '@/types/resume';
 
@@ -106,12 +108,17 @@ export default function Dashboard() {
     }
   };
 
+  const handleUpdateResume = (newText: string) => {
+    setResumeText(newText);
+    toast({ title: 'Resume updated', description: 'Your resume has been updated with the AI suggestions.' });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <AnalysisLoader isAnalyzing={analyzing} />
       <Header />
       
-      <main className="container py-8 max-w-6xl">
+      <main className="container py-8 max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -125,7 +132,7 @@ export default function Dashboard() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsList className="grid w-full max-w-lg grid-cols-3">
               <TabsTrigger value="input" className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 Input
@@ -133,6 +140,10 @@ export default function Dashboard() {
               <TabsTrigger value="results" className="flex items-center gap-2" disabled={!score}>
                 <ListChecks className="w-4 h-4" />
                 Results
+              </TabsTrigger>
+              <TabsTrigger value="copilot" className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Copilot
               </TabsTrigger>
             </TabsList>
 
@@ -219,31 +230,43 @@ export default function Dashboard() {
                     <ScoreBreakdownCard breakdown={breakdown} />
                   </div>
 
-                  {/* Keyword Density */}
-                  {keywordDensity.length > 0 && (
-                    <KeywordDensityCard keywords={keywordDensity} />
-                  )}
+                  {/* Action Plan + Keyword Density Side by Side */}
+                  <div className="grid lg:grid-cols-2 gap-6">
+                    {/* Prioritized Action Plan - Left */}
+                    {feedback.length > 0 && (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <ListChecks className="w-5 h-5 text-primary" />
+                          <h3 className="text-lg font-semibold text-foreground">Prioritized Action Plan</h3>
+                        </div>
+                        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                          {feedback.map((item, index) => (
+                            <ActionPlanCard
+                              key={item.id}
+                              feedback={item}
+                              index={index}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                  {/* Prioritized Action Plan */}
-                  {feedback.length > 0 && (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <ListChecks className="w-5 h-5 text-primary" />
-                        <h3 className="text-lg font-semibold text-foreground">Prioritized Action Plan</h3>
-                      </div>
-                      <div className="space-y-3">
-                        {feedback.map((item, index) => (
-                          <ActionPlanCard
-                            key={item.id}
-                            feedback={item}
-                            index={index}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    {/* Keyword Density - Right */}
+                    {keywordDensity.length > 0 && (
+                      <KeywordDensityCard keywords={keywordDensity} />
+                    )}
+                  </div>
                 </>
               )}
+            </TabsContent>
+
+            <TabsContent value="copilot">
+              <ResumeCopilot 
+                resumeText={resumeText}
+                jobDescription={jobDescription}
+                score={score}
+                onUpdateResume={handleUpdateResume}
+              />
             </TabsContent>
           </Tabs>
         </motion.div>
