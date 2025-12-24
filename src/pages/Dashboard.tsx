@@ -48,11 +48,6 @@ export default function Dashboard() {
     );
   }
 
-  if (!user) {
-    navigate('/auth');
-    return null;
-  }
-
   const handleAnalyze = async () => {
     if (!resumeText.trim() || !jobDescription.trim()) {
       toast({ title: 'Missing input', description: 'Please provide both resume and job description.', variant: 'destructive' });
