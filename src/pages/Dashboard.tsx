@@ -235,9 +235,20 @@ export default function Dashboard() {
                     {/* Prioritized Action Plan - Left */}
                     {feedback.length > 0 && (
                       <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <ListChecks className="w-5 h-5 text-primary" />
-                          <h3 className="text-lg font-semibold text-foreground">Prioritized Action Plan</h3>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <ListChecks className="w-5 h-5 text-primary" />
+                            <h3 className="text-lg font-semibold text-foreground">Prioritized Action Plan</h3>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setActiveTab('copilot')}
+                            className="text-xs"
+                          >
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            Open Resume Rewriter
+                          </Button>
                         </div>
                         <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
                           {feedback.map((item, index) => (
