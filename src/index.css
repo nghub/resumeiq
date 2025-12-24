@@ -128,6 +128,72 @@
     --sidebar-border: 220 20% 18%;
     --sidebar-ring: 175 60% 50%;
   }
+
+  .christmas {
+    --background: 0 30% 97%;
+    --foreground: 150 40% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 150 40% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 40% 12%;
+
+    /* Christmas red */
+    --primary: 0 72% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 150 40% 92%;
+    --secondary-foreground: 150 50% 20%;
+
+    --muted: 0 20% 94%;
+    --muted-foreground: 150 20% 40%;
+
+    /* Christmas green accent */
+    --accent: 150 60% 30%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Christmas green for success */
+    --success: 150 60% 35%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 45 100% 50%;
+    --warning-foreground: 45 100% 15%;
+
+    --info: 210 100% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 150 30% 85%;
+    --input: 150 30% 85%;
+    --ring: 0 72% 45%;
+
+    /* Score colors - festive */
+    --score-excellent: 150 60% 35%;
+    --score-good: 150 50% 45%;
+    --score-fair: 45 100% 50%;
+    --score-poor: 0 72% 51%;
+
+    /* Festive gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(0 72% 45%), hsl(0 72% 55%));
+    --gradient-hero: linear-gradient(135deg, hsl(150 40% 12%), hsl(150 35% 18%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(0 30% 98%));
+    --gradient-score: linear-gradient(135deg, hsl(150 60% 35%), hsl(0 72% 45%));
+
+    /* Festive shadows */
+    --shadow-glow: 0 0 20px hsl(0 72% 45% / 0.3);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 150 40% 20%;
+    --sidebar-primary: 0 72% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 40% 92%;
+    --sidebar-accent-foreground: 150 40% 20%;
+    --sidebar-border: 150 30% 88%;
+    --sidebar-ring: 0 72% 45%;
+  }
 }
 
 @layer base {
