@@ -35,7 +35,7 @@ export function ResultsHeader({ score, summary, onNewScan, onRewrite, isRewritin
         
         <div className="mt-6 space-y-2">
           <h3 className="text-xl font-semibold text-card-foreground">Analysis Complete</h3>
-          <p className="text-muted-foreground max-w-md text-sm leading-relaxed">
+          <p className="text-muted-foreground max-w-md text-sm leading-relaxed line-clamp-6">
             {summary}
           </p>
         </div>
