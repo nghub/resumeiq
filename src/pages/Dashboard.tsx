@@ -8,7 +8,6 @@ import { LineFeedbackCard } from '@/components/LineFeedbackCard';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -21,12 +20,9 @@ import {
   Wand2
 } from 'lucide-react';
 import type { ScoreBreakdown, LineFeedback, OptimizedLine } from '@/types/resume';
-import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
-  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
@@ -39,14 +35,6 @@ export default function Dashboard() {
   const [breakdown, setBreakdown] = useState<ScoreBreakdown | null>(null);
   const [feedback, setFeedback] = useState<LineFeedback[]>([]);
   const [optimizedLines, setOptimizedLines] = useState<OptimizedLine[]>([]);
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   const handleAnalyze = async () => {
     if (!resumeText.trim() || !jobDescription.trim()) {
