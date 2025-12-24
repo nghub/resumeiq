@@ -224,8 +224,6 @@ export default function Dashboard() {
                       score={score} 
                       summary={summary}
                       onNewScan={handleNewScan}
-                      onRewrite={handleRewrite}
-                      isRewriting={rewriting}
                     />
                     <ScoreBreakdownCard breakdown={breakdown} />
                   </div>

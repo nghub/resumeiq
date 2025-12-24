@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, RotateCcw, Wand2, Loader2 } from 'lucide-react';
+import { Sparkles, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScoreGauge } from '@/components/ScoreGauge';
 
@@ -7,11 +7,9 @@ interface ResultsHeaderProps {
   score: number;
   summary: string;
   onNewScan: () => void;
-  onRewrite: () => void;
-  isRewriting: boolean;
 }
 
-export function ResultsHeader({ score, summary, onNewScan, onRewrite, isRewriting }: ResultsHeaderProps) {
+export function ResultsHeader({ score, summary, onNewScan }: ResultsHeaderProps) {
   return (
     <motion.div
       className="bg-card rounded-xl border border-border p-6"
@@ -39,26 +37,6 @@ export function ResultsHeader({ score, summary, onNewScan, onRewrite, isRewritin
             {summary}
           </p>
         </div>
-
-        <Button
-          variant="gradient"
-          size="lg"
-          className="mt-6 w-full max-w-xs"
-          onClick={onRewrite}
-          disabled={isRewriting || score >= 95}
-        >
-          {isRewriting ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Rewriting...
-            </>
-          ) : (
-            <>
-              <Wand2 className="w-4 h-4" />
-              Open Resume Rewriter
-            </>
-          )}
-        </Button>
       </div>
     </motion.div>
   );
