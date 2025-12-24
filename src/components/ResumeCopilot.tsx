@@ -29,7 +29,7 @@ interface ResumeCopilotProps {
   resumeText: string;
   jobDescription: string;
   score: number | null;
-  onUpdateResume?: (newText: string) => void;
+  onUpdateResume?: (newText: string, isFullRewrite?: boolean) => void;
 }
 
 const defaultActions = [
@@ -107,7 +107,7 @@ export function ResumeCopilot({ resumeText, jobDescription, score, onUpdateResum
       setMessages(prev => [...prev, assistantMessage]);
 
       if (onUpdateResume && rewrittenResume) {
-        onUpdateResume(rewrittenResume);
+        onUpdateResume(rewrittenResume, true);
       }
     } catch (error: any) {
       console.error('Rewrite error:', error);

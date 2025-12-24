@@ -7,6 +7,7 @@ import { ResultsHeader } from '@/components/ResultsHeader';
 import { KeywordDensityCard } from '@/components/KeywordDensityCard';
 import { ActionPlanCard } from '@/components/ActionPlanCard';
 import { ResumeCopilot } from '@/components/ResumeCopilot';
+import { OptimizedResumePanel } from '@/components/OptimizedResumePanel';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -50,6 +51,9 @@ export default function Dashboard() {
   // Score comparison state
   const [previousScore, setPreviousScore] = useState<number | null>(null);
   const [showComparison, setShowComparison] = useState(false);
+
+  // Optimized resume state (persists across tabs)
+  const [optimizedResume, setOptimizedResume] = useState<string | null>(null);
 
   // Save scan to history for logged-in users
   const saveScanToHistory = useCallback(async (
@@ -149,7 +153,11 @@ export default function Dashboard() {
   };
 
   // Re-analyze resume after copilot updates it to get new ATS score
-  const handleUpdateResume = async (newText: string) => {
+  const handleUpdateResume = async (newText: string, isFullRewrite?: boolean) => {
+    // Store the optimized resume if it's a full rewrite
+    if (isFullRewrite) {
+      setOptimizedResume(newText);
+    }
     setResumeText(newText);
     toast({ title: 'Resume updated', description: 'Re-analyzing for updated ATS score...' });
 
@@ -360,14 +368,32 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="copilot">
-              <ResumeCopilot 
-                resumeText={resumeText}
-                jobDescription={jobDescription}
-                score={score}
-                onUpdateResume={handleUpdateResume}
-              />
+              <div className="grid lg:grid-cols-2 gap-6">
+                <ResumeCopilot 
+                  resumeText={resumeText}
+                  jobDescription={jobDescription}
+                  score={score}
+                  onUpdateResume={handleUpdateResume}
+                />
+                {optimizedResume && (
+                  <OptimizedResumePanel 
+                    resumeText={optimizedResume}
+                    onClose={() => setOptimizedResume(null)}
+                  />
+                )}
+              </div>
             </TabsContent>
           </Tabs>
+          
+          {/* Show optimized resume panel on other tabs too */}
+          {optimizedResume && activeTab !== 'copilot' && (
+            <div className="mt-6">
+              <OptimizedResumePanel 
+                resumeText={optimizedResume}
+                onClose={() => setOptimizedResume(null)}
+              />
+            </div>
+          )}
         </motion.div>
       </main>
     </div>
