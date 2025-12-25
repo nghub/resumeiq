@@ -5,6 +5,7 @@ import { AnalysisLoader } from '@/components/AnalysisLoader';
 import { ScoreBreakdownCard } from '@/components/ScoreBreakdownCard';
 import { ResultsHeader } from '@/components/ResultsHeader';
 import { KeywordDensityCard } from '@/components/KeywordDensityCard';
+import { SkillsGapCard } from '@/components/SkillsGapCard';
 import { ActionPlanCard } from '@/components/ActionPlanCard';
 import { ResumeCopilot } from '@/components/ResumeCopilot';
 import { OptimizedResumePanel } from '@/components/OptimizedResumePanel';
@@ -31,6 +32,28 @@ interface KeywordItem {
   resumeCount: number;
 }
 
+interface SkillItem {
+  skill: string;
+  importance: 'high' | 'medium' | 'low';
+}
+
+interface MissingSkill extends SkillItem {
+  courses: {
+    platform: string;
+    title: string;
+    duration: string;
+    rating: number;
+    price: string;
+    url: string;
+  }[];
+}
+
+interface SkillsGapData {
+  matchedSkills: SkillItem[];
+  requiredSkills: SkillItem[];
+  missingSkills: MissingSkill[];
+}
+
 export default function Dashboard() {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -54,6 +77,10 @@ export default function Dashboard() {
 
   // Optimized resume state (persists across tabs)
   const [optimizedResume, setOptimizedResume] = useState<string | null>(null);
+
+  // Skills gap analysis state
+  const [skillsGapData, setSkillsGapData] = useState<SkillsGapData | null>(null);
+  const [analyzingSkills, setAnalyzingSkills] = useState(false);
 
   // Save scan to history for logged-in users
   const saveScanToHistory = useCallback(async (
@@ -126,7 +153,32 @@ export default function Dashboard() {
     setSummary('');
     setKeywordDensity([]);
     setFeedback([]);
+    setSkillsGapData(null);
     setActiveTab('input');
+  };
+
+  const handleAnalyzeSkills = async () => {
+    if (!resumeText.trim() || !jobDescription.trim()) {
+      toast({ title: 'Missing input', description: 'Please provide both resume and job description.', variant: 'destructive' });
+      return;
+    }
+
+    setAnalyzingSkills(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('analyze-skills', {
+        body: { resumeText, jobDescription }
+      });
+
+      if (error) throw error;
+
+      setSkillsGapData(data);
+      toast({ title: 'Skills analysis complete!', description: 'Review your skills gap and course recommendations.' });
+    } catch (error: any) {
+      console.error('Skills analysis error:', error);
+      toast({ title: 'Skills analysis failed', description: error.message || 'Please try again.', variant: 'destructive' });
+    } finally {
+      setAnalyzingSkills(false);
+    }
   };
 
   const handleRewrite = async () => {
@@ -371,6 +423,13 @@ export default function Dashboard() {
                       <KeywordDensityCard keywords={keywordDensity} />
                     )}
                   </div>
+
+                  {/* Skills Gap Analysis - Full Width */}
+                  <SkillsGapCard 
+                    data={skillsGapData}
+                    isLoading={analyzingSkills}
+                    onAnalyze={handleAnalyzeSkills}
+                  />
                 </>
               )}
             </TabsContent>
