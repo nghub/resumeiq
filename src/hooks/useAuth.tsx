@@ -38,6 +38,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = async () => {
+    // Store current path to redirect back after login
+    const currentPath = window.location.pathname;
+    if (currentPath !== '/') {
+      localStorage.setItem('authRedirectPath', currentPath);
+    }
+    
     const redirectUrl = `${window.location.origin}/`;
     await supabase.auth.signInWithOAuth({
       provider: 'google',
