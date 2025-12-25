@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileUpload } from '@/components/FileUpload';
 import { AnalysisLoader } from '@/components/AnalysisLoader';
@@ -24,6 +24,8 @@ import {
   ListChecks,
   MessageSquare
 } from 'lucide-react';
+
+const DASHBOARD_STATE_KEY = 'resumeai_dashboard_state';
 import type { ScoreBreakdown, LineFeedback } from '@/types/resume';
 
 interface KeywordItem {
@@ -56,7 +58,7 @@ interface SkillsGapData {
 
 export default function Dashboard() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
@@ -81,6 +83,71 @@ export default function Dashboard() {
   // Skills gap analysis state
   const [skillsGapData, setSkillsGapData] = useState<SkillsGapData | null>(null);
   const [analyzingSkills, setAnalyzingSkills] = useState(false);
+
+  // Save state to localStorage before sign-in
+  const saveStateToStorage = useCallback(() => {
+    const state = {
+      resumeText,
+      jobDescription,
+      score,
+      breakdown,
+      summary,
+      keywordDensity,
+      feedback,
+      previousScore,
+      showComparison,
+      optimizedResume,
+      skillsGapData,
+      activeTab
+    };
+    localStorage.setItem(DASHBOARD_STATE_KEY, JSON.stringify(state));
+  }, [resumeText, jobDescription, score, breakdown, summary, keywordDensity, feedback, previousScore, showComparison, optimizedResume, skillsGapData, activeTab]);
+
+  // Restore state from localStorage after login
+  useEffect(() => {
+    if (!authLoading && user) {
+      const savedState = localStorage.getItem(DASHBOARD_STATE_KEY);
+      const redirectPath = localStorage.getItem('authRedirectPath');
+      
+      if (savedState && redirectPath === '/dashboard') {
+        try {
+          const state = JSON.parse(savedState);
+          if (state.resumeText) setResumeText(state.resumeText);
+          if (state.jobDescription) setJobDescription(state.jobDescription);
+          if (state.score !== null) setScore(state.score);
+          if (state.breakdown) setBreakdown(state.breakdown);
+          if (state.summary) setSummary(state.summary);
+          if (state.keywordDensity) setKeywordDensity(state.keywordDensity);
+          if (state.feedback) setFeedback(state.feedback);
+          if (state.previousScore !== null) setPreviousScore(state.previousScore);
+          if (state.showComparison) setShowComparison(state.showComparison);
+          if (state.optimizedResume) setOptimizedResume(state.optimizedResume);
+          if (state.skillsGapData) setSkillsGapData(state.skillsGapData);
+          if (state.activeTab) setActiveTab(state.activeTab);
+          
+          toast({ title: 'Welcome back!', description: 'Your analysis has been restored.' });
+        } catch (e) {
+          console.error('Failed to restore state:', e);
+        }
+        
+        // Clear saved state after restoration
+        localStorage.removeItem(DASHBOARD_STATE_KEY);
+        localStorage.removeItem('authRedirectPath');
+      }
+    }
+  }, [authLoading, user, toast]);
+
+  // Save state before user initiates sign-in (triggered by Header component)
+  useEffect(() => {
+    const handleBeforeSignIn = () => {
+      if (resumeText || jobDescription || score !== null) {
+        saveStateToStorage();
+      }
+    };
+
+    window.addEventListener('beforeSignIn', handleBeforeSignIn);
+    return () => window.removeEventListener('beforeSignIn', handleBeforeSignIn);
+  }, [saveStateToStorage, resumeText, jobDescription, score]);
 
   // Save scan to history for logged-in users
   const saveScanToHistory = useCallback(async (
