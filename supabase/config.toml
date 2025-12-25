@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.rewrite-resume]
 verify_jwt = false
+
+[functions.analyze-skills]
+verify_jwt = false
