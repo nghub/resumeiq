@@ -11,6 +11,8 @@ import { Header } from "@/components/Header";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import History from "./pages/History";
+import JobAutomation from "./pages/JobAutomation";
+import JobDrafts from "./pages/JobDrafts";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +34,8 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/history" element={<History />} />
+                <Route path="/job-automation" element={<JobAutomation />} />
+                <Route path="/job-drafts" element={<JobDrafts />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

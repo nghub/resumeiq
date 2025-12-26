@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      automation_settings: {
+        Row: {
+          base_resume_text: string | null
+          base_resume_title: string | null
+          created_at: string
+          experience_level: string
+          id: string
+          is_active: boolean
+          job_title: string
+          jobs_found_today: number
+          jobs_found_today_reset_at: string
+          keywords_exclude: string[] | null
+          keywords_include: string[] | null
+          last_searched_at: string | null
+          location: string
+          search_frequency: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_resume_text?: string | null
+          base_resume_title?: string | null
+          created_at?: string
+          experience_level?: string
+          id?: string
+          is_active?: boolean
+          job_title: string
+          jobs_found_today?: number
+          jobs_found_today_reset_at?: string
+          keywords_exclude?: string[] | null
+          keywords_include?: string[] | null
+          last_searched_at?: string | null
+          location: string
+          search_frequency?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_resume_text?: string | null
+          base_resume_title?: string | null
+          created_at?: string
+          experience_level?: string
+          id?: string
+          is_active?: boolean
+          job_title?: string
+          jobs_found_today?: number
+          jobs_found_today_reset_at?: string
+          keywords_exclude?: string[] | null
+          keywords_include?: string[] | null
+          last_searched_at?: string | null
+          location?: string
+          search_frequency?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       job_descriptions: {
         Row: {
           company: string | null
@@ -43,6 +100,74 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      job_drafts: {
+        Row: {
+          adzuna_job_id: string | null
+          ats_score: number
+          automation_id: string | null
+          company_name: string | null
+          created_at: string
+          id: string
+          job_description: string
+          job_title: string
+          job_url: string | null
+          location: string | null
+          optimized_resume: string | null
+          original_resume: string | null
+          posted_date: string | null
+          score_breakdown: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          adzuna_job_id?: string | null
+          ats_score?: number
+          automation_id?: string | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          job_description: string
+          job_title: string
+          job_url?: string | null
+          location?: string | null
+          optimized_resume?: string | null
+          original_resume?: string | null
+          posted_date?: string | null
+          score_breakdown?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          adzuna_job_id?: string | null
+          ats_score?: number
+          automation_id?: string | null
+          company_name?: string | null
+          created_at?: string
+          id?: string
+          job_description?: string
+          job_title?: string
+          job_url?: string | null
+          location?: string | null
+          optimized_resume?: string | null
+          original_resume?: string | null
+          posted_date?: string | null
+          score_breakdown?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_drafts_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "automation_settings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
