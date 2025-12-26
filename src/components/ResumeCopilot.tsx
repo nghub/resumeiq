@@ -307,9 +307,7 @@ export function ResumeCopilot({ resumeText, jobDescription, score, onUpdateResum
                     }`}
                   >
                     <p className={`text-sm whitespace-pre-wrap leading-relaxed ${message.isFullResume ? 'max-h-[300px] overflow-y-auto' : ''}`}>
-                      {message.content.split('**').map((part, i) => 
-                        i % 2 === 1 ? <strong key={i}>{part}</strong> : part
-                      )}
+                      {message.content.replace(/\*\*/g, '')}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 mt-1 px-1">

@@ -29,6 +29,7 @@ CRITICAL INSTRUCTIONS:
 4. Inject ALL relevant keywords from the job description naturally throughout the resume
 5. Use powerful action verbs and quantify achievements wherever possible
 6. Follow modern resume best practices for formatting and structure
+7. DO NOT use any markdown formatting - no asterisks (**), no hashtags (#), no underscores. Use plain text only.
 
 REQUIRED SECTIONS (include all that apply):
 - Professional Summary/Objective (tailored to the job)
@@ -39,11 +40,12 @@ REQUIRED SECTIONS (include all that apply):
 - Projects (if relevant)
 
 FORMAT GUIDELINES:
-- Use clear section headers
-- Use bullet points for achievements
+- Use clear section headers in UPPERCASE or Title Case (no markdown)
+- Use bullet points (• or -) for achievements
 - Start bullets with action verbs
 - Include metrics and numbers where possible
 - Keep it ATS-friendly (no tables, graphics, or fancy formatting)
+- Use plain text only - NO markdown syntax like ** or ## or __
 
 Generate the COMPLETE rewritten resume now. Do not stop until finished.`;
 
@@ -119,7 +121,7 @@ Guidelines:
 - Inject relevant keywords naturally from the job description
 - Keep responses concise but thorough
 - If asked to rewrite the full resume, return it formatted clearly
-- Use markdown for formatting when appropriate`;
+- DO NOT use markdown formatting - no asterisks (**), no hashtags (#), no underscores (__). Use plain text only.`;
 
       const messages = [
         { role: 'system', content: systemPrompt },
