@@ -20,6 +20,8 @@ serve(async (req) => {
 
     const systemPrompt = `You are an expert ATS (Applicant Tracking System) resume analyzer. Analyze the provided resume against the job description and return a detailed JSON response.
 
+IMPORTANT: Do NOT use any markdown formatting in your responses. No asterisks (**), no hashtags (#), no underscores (__). Use plain text only.
+
 Your analysis must include:
 1. An overall ATS match score (0-100)
 2. Score breakdown by category:
@@ -27,7 +29,7 @@ Your analysis must include:
    - experience: How relevant the work experience is (0-100)
    - keywords: How many important keywords are present (0-100)
    - roleAlignment: How well the resume aligns with the role (0-100)
-3. A brief 2-3 sentence summary of the candidate's fit for the role
+3. A brief 2-3 sentence summary of the candidate's fit for the role (plain text, no markdown)
 4. Top 6 keywords from the job description with their count in JD and resume
 5. Prioritized action plan with 5-8 specific improvements
 
@@ -40,7 +42,7 @@ Return ONLY valid JSON in this exact format:
     "keywords": 70,
     "roleAlignment": 80
   },
-  "summary": "Brief 2-3 sentence summary of the candidate's strengths and fit for the role.",
+  "summary": "Brief 2-3 sentence summary of the candidate's strengths and fit for the role. Use plain text only.",
   "keywordDensity": [
     { "keyword": "Python", "jdCount": 8, "resumeCount": 5 },
     { "keyword": "Machine Learning", "jdCount": 6, "resumeCount": 3 }
@@ -50,8 +52,8 @@ Return ONLY valid JSON in this exact format:
       "id": "unique-id-1",
       "lineIndex": 0,
       "originalText": "The exact text from resume that needs improvement",
-      "issue": "Clear, specific issue title (e.g., 'Quantify DevEx Impact')",
-      "suggestion": "Complete rewritten version of this section with specific improvements applied. Make it ready to copy-paste.",
+      "issue": "Clear, specific issue title (e.g., Quantify DevEx Impact)",
+      "suggestion": "Complete rewritten version of this section with specific improvements applied. Make it ready to copy-paste. Use plain text only.",
       "scoreImpact": 5,
       "type": "keyword|vague|missing|impact",
       "section": "Summary|Experience|Skills|Education"
@@ -59,7 +61,7 @@ Return ONLY valid JSON in this exact format:
   ]
 }
 
-Focus on actionable, specific feedback. The suggestion should be a complete, ready-to-use replacement text that the user can copy and paste directly into their resume.`;
+Focus on actionable, specific feedback. The suggestion should be a complete, ready-to-use replacement text that the user can copy and paste directly into their resume. DO NOT use any markdown formatting.`;
 
     const userPrompt = `RESUME:
 ${resumeText}
