@@ -62,6 +62,7 @@ export default function Dashboard() {
 
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [rewriting, setRewriting] = useState(false);
   const [activeTab, setActiveTab] = useState('input');
@@ -89,6 +90,7 @@ export default function Dashboard() {
     const state = {
       resumeText,
       jobDescription,
+      companyName,
       score,
       breakdown,
       summary,
@@ -101,7 +103,7 @@ export default function Dashboard() {
       activeTab
     };
     localStorage.setItem(DASHBOARD_STATE_KEY, JSON.stringify(state));
-  }, [resumeText, jobDescription, score, breakdown, summary, keywordDensity, feedback, previousScore, showComparison, optimizedResume, skillsGapData, activeTab]);
+  }, [resumeText, jobDescription, companyName, score, breakdown, summary, keywordDensity, feedback, previousScore, showComparison, optimizedResume, skillsGapData, activeTab]);
 
   // Restore state from localStorage after login
   useEffect(() => {
@@ -114,6 +116,7 @@ export default function Dashboard() {
           const state = JSON.parse(savedState);
           if (state.resumeText) setResumeText(state.resumeText);
           if (state.jobDescription) setJobDescription(state.jobDescription);
+          if (state.companyName) setCompanyName(state.companyName);
           if (state.score !== null) setScore(state.score);
           if (state.breakdown) setBreakdown(state.breakdown);
           if (state.summary) setSummary(state.summary);
@@ -399,11 +402,24 @@ export default function Dashboard() {
                     <Briefcase className="w-5 h-5 text-primary" />
                     <h2 className="text-lg font-semibold text-card-foreground">Job Description</h2>
                   </div>
+                  <div className="space-y-2">
+                    <label htmlFor="companyName" className="text-sm text-muted-foreground">
+                      Company Name <span className="text-xs">(optional)</span>
+                    </label>
+                    <input
+                      id="companyName"
+                      type="text"
+                      placeholder="e.g., Google, Microsoft, Amazon..."
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
                   <Textarea
                     placeholder="Paste the job description here..."
                     value={jobDescription}
                     onChange={(e) => setJobDescription(e.target.value)}
-                    className="min-h-[380px] font-mono text-sm"
+                    className="min-h-[340px] font-mono text-sm"
                   />
                   {jobDescription && (
                     <span className="text-xs text-muted-foreground">
