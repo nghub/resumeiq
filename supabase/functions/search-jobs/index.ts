@@ -96,41 +96,43 @@ serve(async (req) => {
 
     const remainingSlots = DAILY_LIMIT - jobsFoundToday;
 
-    // Build search query
-    const searchParams = new URLSearchParams({
-      app_id: ADZUNA_APP_ID,
-      app_key: ADZUNA_API_KEY,
-      results_per_page: Math.min(remainingSlots, 10).toString(),
-      what: settings.job_title,
-      where: settings.location,
-      content_type: "application/json",
-    });
-
-    // Add experience level filter
-    if (settings.experience_level === "entry") {
-      searchParams.append("what_or", "junior entry-level graduate");
-    } else if (settings.experience_level === "senior") {
-      searchParams.append("what_or", "senior lead principal");
-    } else if (settings.experience_level === "director") {
-      searchParams.append("what_or", "director vp head");
-    }
-
-    // Add include keywords
+    // Build search query - combine job title with include keywords for 'what' parameter
+    let whatQuery = settings.job_title.trim();
+    
+    // Add include keywords to the search query
     if (settings.keywords_include?.length > 0) {
-      searchParams.append("what_and", settings.keywords_include.join(" "));
+      whatQuery += " " + settings.keywords_include.join(" ");
     }
 
-    // Add exclude keywords
+    // Clean location - Adzuna expects city names or country codes, not "Remote"
+    let whereQuery = settings.location.trim();
+    // If location contains "remote", search more broadly
+    if (whereQuery.toLowerCase().includes("remote")) {
+      whereQuery = "usa"; // Search all of USA for remote jobs
+    }
+
+    const searchParams = new URLSearchParams();
+    searchParams.set("app_id", ADZUNA_APP_ID);
+    searchParams.set("app_key", ADZUNA_API_KEY);
+    searchParams.set("results_per_page", Math.min(remainingSlots, 10).toString());
+    searchParams.set("what", whatQuery);
+    searchParams.set("where", whereQuery);
+
+    // Add exclude keywords if any
     if (settings.keywords_exclude?.length > 0) {
-      searchParams.append("what_exclude", settings.keywords_exclude.join(" "));
+      searchParams.set("what_exclude", settings.keywords_exclude.join(" "));
     }
 
-    console.log("Searching Adzuna:", `https://api.adzuna.com/v1/api/jobs/us/search/1?${searchParams}`);
+    const searchUrl = `https://api.adzuna.com/v1/api/jobs/us/search/1?${searchParams.toString()}`;
+    console.log("Searching Adzuna:", searchUrl);
 
-    // Search Adzuna
-    const adzunaResponse = await fetch(
-      `https://api.adzuna.com/v1/api/jobs/us/search/1?${searchParams}`
-    );
+    // Search Adzuna with proper headers
+    const adzunaResponse = await fetch(searchUrl, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+      },
+    });
 
     if (!adzunaResponse.ok) {
       const errorText = await adzunaResponse.text();
