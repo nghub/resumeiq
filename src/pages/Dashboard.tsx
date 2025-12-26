@@ -62,7 +62,8 @@ export default function Dashboard() {
 
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
-  const [companyName, setCompanyName] = useState('');
+const [companyName, setCompanyName] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [rewriting, setRewriting] = useState(false);
   const [activeTab, setActiveTab] = useState('input');
@@ -91,6 +92,7 @@ export default function Dashboard() {
       resumeText,
       jobDescription,
       companyName,
+      jobTitle,
       score,
       breakdown,
       summary,
@@ -103,7 +105,7 @@ export default function Dashboard() {
       activeTab
     };
     localStorage.setItem(DASHBOARD_STATE_KEY, JSON.stringify(state));
-  }, [resumeText, jobDescription, companyName, score, breakdown, summary, keywordDensity, feedback, previousScore, showComparison, optimizedResume, skillsGapData, activeTab]);
+  }, [resumeText, jobDescription, companyName, jobTitle, score, breakdown, summary, keywordDensity, feedback, previousScore, showComparison, optimizedResume, skillsGapData, activeTab]);
 
   // Restore state from localStorage after login
   useEffect(() => {
@@ -117,6 +119,7 @@ export default function Dashboard() {
           if (state.resumeText) setResumeText(state.resumeText);
           if (state.jobDescription) setJobDescription(state.jobDescription);
           if (state.companyName) setCompanyName(state.companyName);
+          if (state.jobTitle) setJobTitle(state.jobTitle);
           if (state.score !== null) setScore(state.score);
           if (state.breakdown) setBreakdown(state.breakdown);
           if (state.summary) setSummary(state.summary);
@@ -189,7 +192,7 @@ export default function Dashboard() {
     setAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke('analyze-resume', {
-        body: { resumeText, jobDescription }
+        body: { resumeText, jobDescription, companyName: companyName.trim() || undefined, jobTitle: jobTitle.trim() || undefined }
       });
 
       if (error) throw error;
@@ -402,18 +405,33 @@ export default function Dashboard() {
                     <Briefcase className="w-5 h-5 text-primary" />
                     <h2 className="text-lg font-semibold text-card-foreground">Job Description</h2>
                   </div>
-                  <div className="space-y-2">
-                    <label htmlFor="companyName" className="text-sm text-muted-foreground">
-                      Company Name <span className="text-xs">(optional)</span>
-                    </label>
-                    <input
-                      id="companyName"
-                      type="text"
-                      placeholder="e.g., Google, Microsoft, Amazon..."
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label htmlFor="companyName" className="text-sm text-muted-foreground">
+                        Company Name <span className="text-xs">(optional)</span>
+                      </label>
+                      <input
+                        id="companyName"
+                        type="text"
+                        placeholder="e.g., Google, Microsoft..."
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="jobTitle" className="text-sm text-muted-foreground">
+                        Job Title <span className="text-xs">(optional)</span>
+                      </label>
+                      <input
+                        id="jobTitle"
+                        type="text"
+                        placeholder="e.g., Senior Software Engineer..."
+                        value={jobTitle}
+                        onChange={(e) => setJobTitle(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      />
+                    </div>
                   </div>
                   <Textarea
                     placeholder="Paste the job description here..."

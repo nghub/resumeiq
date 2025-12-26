@@ -11,14 +11,20 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeText, jobDescription } = await req.json();
+    const { resumeText, jobDescription, companyName, jobTitle } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
+    const companyContext = companyName ? `The target company is ${companyName}. Consider their culture, values, and what they typically look for in candidates when providing recommendations.` : '';
+    const jobTitleContext = jobTitle ? `The target role is ${jobTitle}. Ensure the resume effectively positions the candidate for this specific role.` : '';
+
     const systemPrompt = `You are an expert ATS (Applicant Tracking System) resume analyzer. Analyze the provided resume against the job description and return a detailed JSON response.
+
+${companyContext}
+${jobTitleContext}
 
 IMPORTANT: Do NOT use any markdown formatting in your responses. No asterisks (**), no hashtags (#), no underscores (__). Use plain text only.
 
@@ -68,6 +74,8 @@ ${resumeText}
 
 JOB DESCRIPTION:
 ${jobDescription}
+${companyName ? `\nTARGET COMPANY: ${companyName}` : ''}
+${jobTitle ? `\nTARGET ROLE: ${jobTitle}` : ''}
 
 Analyze this resume against the job description and provide the ATS score breakdown and feedback.`;
 
