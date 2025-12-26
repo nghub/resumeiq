@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, X, FileText, Clock, Search, Zap, Loader2, Play, Pause } from 'lucide-react';
+import { Upload, X, FileText, Clock, Search, Zap, Loader2, Play, Pause, Plus, Edit2, Trash2, ArrowLeft, Briefcase } from 'lucide-react';
 import * as pdfjs from 'pdfjs-dist';
 import mammoth from 'mammoth';
 
@@ -34,12 +35,18 @@ interface AutomationSettings {
   jobs_found_today_reset_at: string;
 }
 
+const MAX_AUTOMATIONS = 5;
+
 export default function JobAutomation() {
   const { user, signInWithGoogle, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [searching, setSearching] = useState(false);
-  const [settings, setSettings] = useState<AutomationSettings | null>(null);
+  const [searching, setSearching] = useState<string | null>(null);
+  const [automations, setAutomations] = useState<AutomationSettings[]>([]);
+  const [selectedAutomation, setSelectedAutomation] = useState<AutomationSettings | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   
   // Form state
   const [jobTitle, setJobTitle] = useState('');
@@ -61,37 +68,25 @@ export default function JobAutomation() {
 
   useEffect(() => {
     if (user) {
-      fetchSettings();
+      fetchAutomations();
       fetchWeeklyStats();
     } else {
       setLoading(false);
     }
   }, [user]);
 
-  const fetchSettings = async () => {
+  const fetchAutomations = async () => {
     try {
       const { data, error } = await supabase
         .from('automation_settings')
         .select('*')
         .eq('user_id', user!.id)
-        .maybeSingle();
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      if (data) {
-        setSettings(data);
-        setJobTitle(data.job_title);
-        setLocation(data.location);
-        setExperienceLevel(data.experience_level);
-        setKeywordsInclude(data.keywords_include || []);
-        setKeywordsExclude(data.keywords_exclude || []);
-        setSearchFrequency(data.search_frequency);
-        setBaseResumeText(data.base_resume_text);
-        setBaseResumeTitle(data.base_resume_title);
-        setIsActive(data.is_active);
-      }
+      setAutomations(data || []);
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      console.error('Error fetching automations:', error);
     } finally {
       setLoading(false);
     }
@@ -112,6 +107,32 @@ export default function JobAutomation() {
     } catch (error) {
       console.error('Error fetching weekly stats:', error);
     }
+  };
+
+  const resetForm = () => {
+    setJobTitle('');
+    setLocation('');
+    setExperienceLevel('mid');
+    setKeywordsInclude([]);
+    setKeywordsExclude([]);
+    setSearchFrequency('daily');
+    setBaseResumeText(null);
+    setBaseResumeTitle(null);
+    setIsActive(false);
+    setIncludeInput('');
+    setExcludeInput('');
+  };
+
+  const loadAutomationToForm = (automation: AutomationSettings) => {
+    setJobTitle(automation.job_title);
+    setLocation(automation.location);
+    setExperienceLevel(automation.experience_level);
+    setKeywordsInclude(automation.keywords_include || []);
+    setKeywordsExclude(automation.keywords_exclude || []);
+    setSearchFrequency(automation.search_frequency);
+    setBaseResumeText(automation.base_resume_text);
+    setBaseResumeTitle(automation.base_resume_title);
+    setIsActive(automation.is_active);
   };
 
   const parseFile = async (file: File): Promise<string> => {
@@ -208,80 +229,128 @@ export default function JobAutomation() {
         is_active: isActive
       };
 
-      if (settings) {
+      if (isEditing && selectedAutomation) {
         const { error } = await supabase
           .from('automation_settings')
           .update(settingsData)
-          .eq('id', settings.id);
+          .eq('id', selectedAutomation.id);
         if (error) throw error;
+        toast.success('Automation updated');
       } else {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('automation_settings')
-          .insert(settingsData)
-          .select()
-          .single();
+          .insert(settingsData);
         if (error) throw error;
-        setSettings(data);
+        toast.success('Automation created');
       }
 
-      toast.success('Automation settings saved');
+      await fetchAutomations();
+      setIsEditing(false);
+      setIsCreating(false);
+      setSelectedAutomation(null);
+      resetForm();
     } catch (error) {
-      console.error('Error saving settings:', error);
-      toast.error('Failed to save settings');
+      console.error('Error saving automation:', error);
+      toast.error('Failed to save automation');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleSearchNow = async () => {
-    if (!settings) {
-      toast.error('Please save your settings first');
-      return;
-    }
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('automation_settings')
+        .delete()
+        .eq('id', id);
 
-    if (settings.jobs_found_today >= 3) {
+      if (error) throw error;
+      toast.success('Automation deleted');
+      setDeleteConfirmId(null);
+      await fetchAutomations();
+    } catch (error) {
+      console.error('Error deleting automation:', error);
+      toast.error('Failed to delete automation');
+    }
+  };
+
+  const handleSearchNow = async (automation: AutomationSettings) => {
+    if (automation.jobs_found_today >= 3) {
       toast.error('Daily limit reached (3/3). Next search: tomorrow at 9 AM');
       return;
     }
 
-    setSearching(true);
+    setSearching(automation.id);
     try {
       const { data, error } = await supabase.functions.invoke('search-jobs', {
-        body: { automationId: settings.id }
+        body: { automationId: automation.id }
       });
 
       if (error) throw error;
 
       toast.success(`Found ${data.jobsFound} new job matches!`);
-      fetchSettings();
+      fetchAutomations();
       fetchWeeklyStats();
     } catch (error) {
       console.error('Error searching jobs:', error);
       toast.error('Failed to search for jobs');
     } finally {
-      setSearching(false);
+      setSearching(null);
     }
   };
 
-  const toggleActive = async () => {
-    if (!settings) {
-      setIsActive(!isActive);
-      return;
-    }
-
+  const toggleActive = async (automation: AutomationSettings) => {
     try {
       const { error } = await supabase
         .from('automation_settings')
-        .update({ is_active: !isActive })
-        .eq('id', settings.id);
+        .update({ is_active: !automation.is_active })
+        .eq('id', automation.id);
 
       if (error) throw error;
-      setIsActive(!isActive);
-      toast.success(isActive ? 'Automation paused' : 'Automation activated');
+      
+      setAutomations(automations.map(a => 
+        a.id === automation.id ? { ...a, is_active: !a.is_active } : a
+      ));
+      toast.success(automation.is_active ? 'Automation paused' : 'Automation activated');
     } catch (error) {
       console.error('Error toggling automation:', error);
       toast.error('Failed to update automation status');
     }
+  };
+
+  const formatLastSearched = (lastSearchedAt: string | null) => {
+    if (!lastSearchedAt) return 'Never';
+    const lastSearched = new Date(lastSearchedAt);
+    const now = new Date();
+    const diff = now.getTime() - lastSearched.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor(diff / (1000 * 60));
+    
+    if (hours > 24) return `${Math.floor(hours / 24)} days ago`;
+    if (hours > 0) return `${hours} hours ago`;
+    if (minutes > 0) return `${minutes} minutes ago`;
+    return 'Just now';
+  };
+
+  const startCreate = () => {
+    resetForm();
+    setIsCreating(true);
+    setIsEditing(false);
+    setSelectedAutomation(null);
+  };
+
+  const startEdit = (automation: AutomationSettings) => {
+    setSelectedAutomation(automation);
+    loadAutomationToForm(automation);
+    setIsEditing(true);
+    setIsCreating(false);
+  };
+
+  const cancelEdit = () => {
+    setIsEditing(false);
+    setIsCreating(false);
+    setSelectedAutomation(null);
+    resetForm();
   };
 
   if (authLoading) {
@@ -313,24 +382,232 @@ export default function JobAutomation() {
     );
   }
 
-  const jobsFoundToday = settings?.jobs_found_today || 0;
-  const lastSearched = settings?.last_searched_at 
-    ? new Date(settings.last_searched_at)
-    : null;
+  // Show form view when creating or editing
+  if (isCreating || isEditing) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container py-8 max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Button variant="ghost" onClick={cancelEdit} className="mb-4 gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Automations
+            </Button>
 
-  const formatLastSearched = () => {
-    if (!lastSearched) return 'Never';
-    const now = new Date();
-    const diff = now.getTime() - lastSearched.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor(diff / (1000 * 60));
-    
-    if (hours > 24) return `${Math.floor(hours / 24)} days ago`;
-    if (hours > 0) return `${hours} hours ago`;
-    if (minutes > 0) return `${minutes} minutes ago`;
-    return 'Just now';
-  };
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">
+                  {isCreating ? 'Create Automation' : 'Edit Automation'}
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                  {isCreating ? 'Set up a new job search automation' : `Editing: ${selectedAutomation?.job_title}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  {isActive ? (
+                    <Badge className="bg-primary/10 text-primary border-primary/20">
+                      <Play className="w-3 h-3 mr-1" /> Active
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">
+                      <Pause className="w-3 h-3 mr-1" /> Paused
+                    </Badge>
+                  )}
+                </div>
+                <Switch checked={isActive} onCheckedChange={setIsActive} />
+              </div>
+            </div>
 
+            {/* Setup Form */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Job Search Preferences</CardTitle>
+                <CardDescription>
+                  Configure what types of jobs you're looking for
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="jobTitle">Job Title</Label>
+                    <Input
+                      id="jobTitle"
+                      placeholder="e.g., Product Manager"
+                      value={jobTitle}
+                      onChange={(e) => setJobTitle(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      placeholder="e.g., Remote, San Francisco"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Experience Level</Label>
+                    <Select value={experienceLevel} onValueChange={setExperienceLevel}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="entry">Entry Level</SelectItem>
+                        <SelectItem value="mid">Mid Level</SelectItem>
+                        <SelectItem value="senior">Senior</SelectItem>
+                        <SelectItem value="director">Director</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Search Frequency</Label>
+                    <Select value={searchFrequency} onValueChange={setSearchFrequency}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="every_3_days">Every 3 Days</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <Label>Keywords to Include</Label>
+                  <Input
+                    placeholder="Type a keyword and press Enter"
+                    value={includeInput}
+                    onChange={(e) => setIncludeInput(e.target.value)}
+                    onKeyDown={handleAddIncludeKeyword}
+                  />
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {keywordsInclude.map((keyword, index) => (
+                      <Badge key={index} variant="secondary" className="gap-1">
+                        {keyword}
+                        <button
+                          onClick={() => setKeywordsInclude(keywordsInclude.filter((_, i) => i !== index))}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Keywords to Exclude</Label>
+                  <Input
+                    placeholder="Type a keyword and press Enter"
+                    value={excludeInput}
+                    onChange={(e) => setExcludeInput(e.target.value)}
+                    onKeyDown={handleAddExcludeKeyword}
+                  />
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {keywordsExclude.map((keyword, index) => (
+                      <Badge key={index} variant="outline" className="gap-1 text-destructive border-destructive/30">
+                        {keyword}
+                        <button
+                          onClick={() => setKeywordsExclude(keywordsExclude.filter((_, i) => i !== index))}
+                          className="ml-1 hover:text-destructive"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium">Limit:</span> 3 jobs per day
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Resume Upload */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Base Resume</CardTitle>
+                <CardDescription>
+                  Upload your base resume to be optimized for each job
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {baseResumeText ? (
+                  <div className="border rounded-lg p-4 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-8 h-8 text-primary" />
+                        <div>
+                          <p className="font-medium">{baseResumeTitle}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {baseResumeText.length} characters
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setBaseResumeText(null);
+                          setBaseResumeTitle(null);
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-3">
+                      This resume will be automatically optimized for each job found.
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    {...getRootProps()}
+                    className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                      isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'
+                    }`}
+                  >
+                    <input {...getInputProps()} />
+                    <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="font-medium">
+                      {isDragActive ? 'Drop your resume here' : 'Drag & drop your resume'}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      or click to browse (PDF, DOCX, TXT)
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="flex gap-3">
+              <Button onClick={handleSave} disabled={saving} className="gap-2">
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                {isCreating ? 'Create Automation' : 'Save Changes'}
+              </Button>
+              <Button variant="outline" onClick={cancelEdit}>
+                Cancel
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // List view
   return (
     <div className="min-h-screen bg-background">
       <div className="container py-8 max-w-4xl">
@@ -341,38 +618,30 @@ export default function JobAutomation() {
         >
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Job Automation</h1>
+              <h1 className="text-3xl font-bold text-foreground">Job Automations</h1>
               <p className="text-muted-foreground mt-1">
-                Automatically find jobs and generate optimized resumes
+                {automations.length}/{MAX_AUTOMATIONS} automations configured
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                {isActive ? (
-                  <Badge className="bg-primary/10 text-primary border-primary/20">
-                    <Play className="w-3 h-3 mr-1" /> Active
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">
-                    <Pause className="w-3 h-3 mr-1" /> Paused
-                  </Badge>
-                )}
-              </div>
-              <Switch checked={isActive} onCheckedChange={toggleActive} />
-            </div>
+            {automations.length < MAX_AUTOMATIONS && (
+              <Button onClick={startCreate} className="gap-2">
+                <Plus className="w-4 h-4" />
+                New Automation
+              </Button>
+            )}
           </div>
 
-          {/* Status Cards */}
+          {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-primary/10">
-                    <Clock className="w-5 h-5 text-primary" />
+                    <Briefcase className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Last searched</p>
-                    <p className="font-semibold">{formatLastSearched()}</p>
+                    <p className="text-sm text-muted-foreground">Active automations</p>
+                    <p className="font-semibold">{automations.filter(a => a.is_active).length}</p>
                   </div>
                 </div>
               </CardContent>
@@ -384,8 +653,8 @@ export default function JobAutomation() {
                     <Search className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Jobs found today</p>
-                    <p className="font-semibold">{jobsFoundToday}/3</p>
+                    <p className="text-sm text-muted-foreground">Total jobs today</p>
+                    <p className="font-semibold">{automations.reduce((acc, a) => acc + a.jobs_found_today, 0)}/3</p>
                   </div>
                 </div>
               </CardContent>
@@ -405,216 +674,151 @@ export default function JobAutomation() {
             </Card>
           </div>
 
-          {/* Setup Form */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Job Search Preferences</CardTitle>
-              <CardDescription>
-                Configure what types of jobs you're looking for
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="jobTitle">Job Title</Label>
-                  <Input
-                    id="jobTitle"
-                    placeholder="e.g., Product Manager"
-                    value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    placeholder="e.g., Remote, San Francisco"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Experience Level</Label>
-                  <Select value={experienceLevel} onValueChange={setExperienceLevel}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="entry">Entry Level</SelectItem>
-                      <SelectItem value="mid">Mid Level</SelectItem>
-                      <SelectItem value="senior">Senior</SelectItem>
-                      <SelectItem value="director">Director</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Search Frequency</Label>
-                  <Select value={searchFrequency} onValueChange={setSearchFrequency}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="every_3_days">Every 3 Days</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label>Keywords to Include</Label>
-                <Input
-                  placeholder="Type a keyword and press Enter"
-                  value={includeInput}
-                  onChange={(e) => setIncludeInput(e.target.value)}
-                  onKeyDown={handleAddIncludeKeyword}
-                />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {keywordsInclude.map((keyword, index) => (
-                    <Badge key={index} variant="secondary" className="gap-1">
-                      {keyword}
-                      <button
-                        onClick={() => setKeywordsInclude(keywordsInclude.filter((_, i) => i !== index))}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Keywords to Exclude</Label>
-                <Input
-                  placeholder="Type a keyword and press Enter"
-                  value={excludeInput}
-                  onChange={(e) => setExcludeInput(e.target.value)}
-                  onKeyDown={handleAddExcludeKeyword}
-                />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {keywordsExclude.map((keyword, index) => (
-                    <Badge key={index} variant="outline" className="gap-1 border-destructive/50 text-destructive">
-                      {keyword}
-                      <button
-                        onClick={() => setKeywordsExclude(keywordsExclude.filter((_, i) => i !== index))}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Base Resume Upload */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Base Resume</CardTitle>
-              <CardDescription>
-                Upload your resume - it will be optimized for each job automatically
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {baseResumeTitle ? (
-                <div className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-8 h-8 text-primary" />
-                    <div>
-                      <p className="font-medium">{baseResumeTitle}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {baseResumeText?.length} characters
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setBaseResumeText(null);
-                      setBaseResumeTitle(null);
-                    }}
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : automations.length === 0 ? (
+            <Card className="text-center py-16">
+              <CardContent>
+                <Briefcase className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <h2 className="text-xl font-semibold mb-2">No automations yet</h2>
+                <p className="text-muted-foreground mb-4">
+                  Create your first job search automation to start finding matching jobs.
+                </p>
+                <Button onClick={startCreate} className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Create Automation
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              <AnimatePresence>
+                {automations.map((automation, index) => (
+                  <motion.div
+                    key={automation.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ delay: index * 0.05 }}
                   >
-                    <X className="w-4 h-4 mr-1" /> Remove
-                  </Button>
-                </div>
-              ) : (
-                <div
-                  {...getRootProps()}
-                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                    isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  <input {...getInputProps()} />
-                  <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
-                  <p className="text-muted-foreground">
-                    {isDragActive
-                      ? 'Drop your resume here...'
-                      : 'Drag & drop your resume, or click to browse'}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Supports PDF, DOCX, TXT
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <Card className="hover:border-primary/30 transition-colors">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold">{automation.job_title}</h3>
+                              {automation.is_active ? (
+                                <Badge className="bg-primary/10 text-primary border-primary/20">
+                                  <Play className="w-3 h-3 mr-1" /> Active
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">
+                                  <Pause className="w-3 h-3 mr-1" /> Paused
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                              <span>{automation.location}</span>
+                              <span>•</span>
+                              <span className="capitalize">{automation.experience_level} level</span>
+                              <span>•</span>
+                              <span className="capitalize">{automation.search_frequency.replace('_', ' ')}</span>
+                            </div>
+                            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                Last: {formatLastSearched(automation.last_searched_at)}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Search className="w-4 h-4" />
+                                {automation.jobs_found_today}/3 today
+                              </span>
+                            </div>
+                          </div>
 
-          {/* Daily Limit Notice */}
-          <Card className="mb-6 border-primary/20 bg-primary/5">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <Zap className="w-5 h-5 text-primary mt-0.5" />
-                <div>
-                  <p className="font-medium">Daily Limit: 3 jobs per day</p>
-                  <p className="text-sm text-muted-foreground">
-                    To ensure quality matches and optimize API usage, we find up to 3 best matching jobs each day. The counter resets at midnight EST.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={automation.is_active}
+                              onCheckedChange={() => toggleActive(automation)}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSearchNow(automation)}
+                              disabled={searching === automation.id || automation.jobs_found_today >= 3}
+                            >
+                              {searching === automation.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Search className="w-4 h-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => startEdit(automation)}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDeleteConfirmId(automation.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-4">
-            <Button onClick={handleSave} disabled={saving} className="flex-1">
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save & Activate'
+                        {automation.keywords_include.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-3">
+                            {automation.keywords_include.map((kw, i) => (
+                              <Badge key={i} variant="secondary" className="text-xs">
+                                {kw}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {automations.length >= MAX_AUTOMATIONS && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Maximum of {MAX_AUTOMATIONS} automations reached. Delete one to create a new one.
+                </p>
               )}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleSearchNow}
-              disabled={searching || !settings || jobsFoundToday >= 3}
-            >
-              {searching ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Searching...
-                </>
-              ) : (
-                <>
-                  <Search className="w-4 h-4 mr-2" />
-                  Search Now
-                </>
-              )}
-            </Button>
-          </div>
+            </div>
+          )}
         </motion.div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Automation?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete this automation and cannot be undone. Job drafts will not be deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
