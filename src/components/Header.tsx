@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { FileText, History, Moon, Sun, Snowflake, TreePine, LogOut, User } from 'lucide-react';
+import { FileText, History, Moon, Sun, Snowflake, TreePine, LogOut, User, Zap, Briefcase } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/hooks/useAuth';
@@ -51,6 +51,18 @@ export function Header({ onSnowToggle, isSnowing }: HeaderProps) {
             <Button variant="ghost" size="sm">
               <History className="w-4 h-4 mr-2" />
               History
+            </Button>
+          </Link>
+          <Link to="/job-automation">
+            <Button variant="ghost" size="sm">
+              <Zap className="w-4 h-4 mr-2" />
+              Job Automation
+            </Button>
+          </Link>
+          <Link to="/job-drafts">
+            <Button variant="ghost" size="sm">
+              <Briefcase className="w-4 h-4 mr-2" />
+              Job Drafts
             </Button>
           </Link>
           
