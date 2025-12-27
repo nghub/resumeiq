@@ -3,6 +3,12 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   Copy, 
   Check, 
@@ -13,8 +19,11 @@ import {
   Maximize2,
   TrendingUp,
   TrendingDown,
-  Minus
+  Minus,
+  ChevronDown
 } from 'lucide-react';
+import { resumeTemplates, TemplateId } from '@/lib/resumeTemplates';
+import { generateResumePDF } from '@/lib/pdfGenerator';
 
 interface OptimizedResumePanelProps {
   resumeText: string;
@@ -27,6 +36,8 @@ export function OptimizedResumePanel({ resumeText, score, previousScore, onClose
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateId>('classic');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const scoreDiff = score !== null && score !== undefined && previousScore !== null && previousScore !== undefined
     ? score - previousScore 
@@ -39,52 +50,21 @@ export function OptimizedResumePanel({ resumeText, score, previousScore, onClose
     toast({ title: 'Copied!', description: 'Optimized resume copied to clipboard.' });
   };
 
-  const handleDownloadPDF = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({ title: 'Error', description: 'Please allow popups to download PDF.', variant: 'destructive' });
-      return;
+  const handleDownloadPDF = async () => {
+    setIsGenerating(true);
+    try {
+      generateResumePDF(resumeText, selectedTemplate);
+      toast({ title: 'Success!', description: 'Resume downloaded as PDF.' });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({ title: 'Error', description: 'Failed to generate PDF.', variant: 'destructive' });
+    } finally {
+      setIsGenerating(false);
     }
+  };
 
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Optimized Resume</title>
-        <style>
-          body {
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
-            line-height: 1.5;
-            margin: 1in;
-            color: #000;
-          }
-          h1, h2, h3 {
-            font-family: Arial, sans-serif;
-            margin-bottom: 0.5em;
-          }
-          h1 { font-size: 18pt; }
-          h2 { font-size: 14pt; border-bottom: 1px solid #000; padding-bottom: 3px; }
-          h3 { font-size: 12pt; }
-          p { margin: 0.5em 0; }
-          ul { margin: 0.5em 0; padding-left: 1.5em; }
-          li { margin-bottom: 0.25em; }
-          @media print {
-            body { margin: 0.5in; }
-          }
-        </style>
-      </head>
-      <body>
-        <pre style="white-space: pre-wrap; font-family: inherit;">${resumeText}</pre>
-      </body>
-      </html>
-    `;
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-    printWindow.print();
-
-    toast({ title: 'PDF Ready', description: 'Use the print dialog to save as PDF.' });
+  const getTemplateName = () => {
+    return resumeTemplates.find(t => t.id === selectedTemplate)?.name || 'Classic Professional';
   };
 
   if (isMinimized) {
@@ -192,15 +172,46 @@ export function OptimizedResumePanel({ resumeText, score, previousScore, onClose
           {copied ? <Check className="w-3 h-3 mr-1 text-green-500" /> : <Copy className="w-3 h-3 mr-1" />}
           {copied ? 'Copied!' : 'Copy'}
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDownloadPDF}
-          className="text-xs"
-        >
-          <Download className="w-3 h-3 mr-1" />
-          Download PDF
-        </Button>
+        
+        {/* Template Dropdown + Download */}
+        <div className="flex items-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs rounded-r-none border-r-0"
+              >
+                {getTemplateName()}
+                <ChevronDown className="w-3 h-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-popover border border-border z-50">
+              {resumeTemplates.map((template) => (
+                <DropdownMenuItem
+                  key={template.id}
+                  onClick={() => setSelectedTemplate(template.id)}
+                  className={`cursor-pointer ${selectedTemplate === template.id ? 'bg-accent' : ''}`}
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium">{template.name}</span>
+                    <span className="text-xs text-muted-foreground">{template.description}</span>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleDownloadPDF}
+            disabled={isGenerating}
+            className="text-xs rounded-l-none"
+          >
+            <Download className="w-3 h-3 mr-1" />
+            {isGenerating ? 'Generating...' : 'Download PDF'}
+          </Button>
+        </div>
       </div>
 
       {/* Content */}

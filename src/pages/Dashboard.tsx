@@ -7,7 +7,7 @@ import { ResultsHeader } from '@/components/ResultsHeader';
 import { KeywordDensityCard } from '@/components/KeywordDensityCard';
 import { SkillsGapCard } from '@/components/SkillsGapCard';
 import { ActionPlanCard } from '@/components/ActionPlanCard';
-import { ResumeTemplates } from '@/components/ResumeTemplates';
+
 import { ResumeCopilot } from '@/components/ResumeCopilot';
 import { OptimizedResumePanel } from '@/components/OptimizedResumePanel';
 import { Button } from '@/components/ui/button';
@@ -533,11 +533,6 @@ const [companyName, setCompanyName] = useState('');
                     onAnalyze={handleAnalyzeSkills}
                   />
 
-                  {/* Resume Templates & PDF Download */}
-                  <ResumeTemplates 
-                    resumeText={resumeText}
-                    optimizedResume={optimizedResume}
-                  />
                 </>
               )}
             </TabsContent>
