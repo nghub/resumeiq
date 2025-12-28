@@ -1,4 +1,6 @@
 import { jsPDF } from 'jspdf';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
+import { saveAs } from 'file-saver';
 import type { TemplateId, TemplateCustomization } from './resumeTemplates';
 import { colorSchemes, fontFamilies } from './resumeTemplates';
 
@@ -324,4 +326,153 @@ export function generatePlainText(resumeText: string, contactName?: string): voi
   link.click();
   
   URL.revokeObjectURL(url);
+}
+
+// Generate DOCX download
+export async function generateResumeDocx(
+  resumeText: string,
+  templateId: TemplateId,
+  contactName?: string
+): Promise<void> {
+  const parsed = parseResumeText(resumeText);
+  const colors = colorSchemes[templateId === 'classic' ? 'black' : templateId === 'modern' ? 'teal' : templateId === 'executive' ? 'blue' : 'gray'];
+  
+  const sectionHeaders = ['summary', 'experience', 'education', 'skills', 'certifications', 'projects', 'work history', 'professional experience', 'technical skills'];
+  
+  const lines = resumeText.split('\n');
+  const children: Paragraph[] = [];
+  
+  // Add name as title
+  const name = parsed.name || contactName || 'Resume';
+  children.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: name,
+          bold: true,
+          size: templateId === 'modern' ? 48 : 40, // Size in half-points
+          color: templateId === 'modern' || templateId === 'executive' ? colors.primary.replace('#', '') : '000000',
+        }),
+      ],
+      alignment: templateId === 'classic' ? AlignmentType.CENTER : AlignmentType.LEFT,
+      spacing: { after: 100 },
+    })
+  );
+  
+  // Add contact info
+  const contactParts = [parsed.email, parsed.phone, parsed.linkedin].filter(Boolean);
+  if (contactParts.length > 0) {
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: contactParts.join(' | '),
+            size: 20,
+            color: '666666',
+          }),
+        ],
+        alignment: templateId === 'classic' ? AlignmentType.CENTER : AlignmentType.LEFT,
+        spacing: { after: 200 },
+        border: templateId === 'classic' ? {
+          bottom: { style: BorderStyle.SINGLE, size: 6, color: '000000' },
+        } : undefined,
+      })
+    );
+  }
+  
+  // Process remaining content
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      children.push(new Paragraph({ spacing: { after: 100 } }));
+      return;
+    }
+    
+    // Skip if it's the name we already added
+    if (trimmed === name) return;
+    
+    // Check if it's a section header
+    const isHeader = sectionHeaders.some(h => trimmed.toLowerCase().includes(h) && trimmed.length < 40);
+    
+    if (isHeader) {
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: trimmed.toUpperCase(),
+              bold: true,
+              size: 24,
+              color: colors.primary.replace('#', ''),
+            }),
+          ],
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 240, after: 120 },
+          border: templateId === 'modern' ? {
+            bottom: { style: BorderStyle.SINGLE, size: 4, color: colors.accent.replace('#', '') },
+          } : templateId === 'executive' ? {
+            bottom: { style: BorderStyle.SINGLE, size: 6, color: colors.primary.replace('#', '') },
+          } : undefined,
+        })
+      );
+      return;
+    }
+    
+    // Bullet points
+    if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
+      const bulletText = trimmed.replace(/^[-•*]\s*/, '');
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `• ${bulletText}`,
+              size: 22,
+            }),
+          ],
+          indent: { left: 360 },
+          spacing: { after: 80 },
+        })
+      );
+      return;
+    }
+    
+    // Regular text
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: trimmed,
+            size: 22,
+          }),
+        ],
+        spacing: { after: 80 },
+      })
+    );
+  });
+  
+  const doc = new Document({
+    sections: [{
+      properties: {
+        page: {
+          margin: {
+            top: 720,
+            right: 720,
+            bottom: 720,
+            left: 720,
+          },
+        },
+      },
+      children,
+    }],
+  });
+  
+  const blob = await Packer.toBlob(doc);
+  
+  // Generate filename
+  const cleanName = name.replace(/[^a-zA-Z\s]/g, '').trim();
+  const nameParts = cleanName.split(' ');
+  const firstName = nameParts[0] || 'Resume';
+  const lastName = nameParts.slice(1).join('_') || '';
+  const filename = lastName ? `${firstName}_${lastName}_Resume.docx` : `${firstName}_Resume.docx`;
+  
+  saveAs(blob, filename);
 }

@@ -27,10 +27,12 @@ import {
   TrendingDown,
   Minus,
   ChevronDown,
-  Eye
+  Eye,
+  FileType,
+  FileType2
 } from 'lucide-react';
 import { resumeTemplates, TemplateId, colorSchemes } from '@/lib/resumeTemplates';
-import { generateResumePDF, parseResumeText } from '@/lib/pdfGenerator';
+import { generateResumePDF, parseResumeText, generateResumeDocx, generatePlainText } from '@/lib/pdfGenerator';
 
 interface OptimizedResumePanelProps {
   resumeText: string;
@@ -166,6 +168,29 @@ export function OptimizedResumePanel({ resumeText, score, previousScore, onClose
       toast({ title: 'Error', description: 'Failed to generate PDF.', variant: 'destructive' });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadDocx = async () => {
+    setIsGenerating(true);
+    try {
+      await generateResumeDocx(resumeText, selectedTemplate);
+      toast({ title: 'Success!', description: 'Resume downloaded as DOCX.' });
+    } catch (error) {
+      console.error('DOCX generation error:', error);
+      toast({ title: 'Error', description: 'Failed to generate DOCX.', variant: 'destructive' });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadTxt = () => {
+    try {
+      generatePlainText(resumeText);
+      toast({ title: 'Success!', description: 'Resume downloaded as TXT.' });
+    } catch (error) {
+      console.error('TXT generation error:', error);
+      toast({ title: 'Error', description: 'Failed to generate TXT.', variant: 'destructive' });
     }
   };
 
@@ -317,16 +342,43 @@ export function OptimizedResumePanel({ resumeText, score, previousScore, onClose
             >
               <Eye className="w-3 h-3" />
             </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleDownloadPDF}
-              disabled={isGenerating}
-              className="text-xs rounded-l-none"
-            >
-              <Download className="w-3 h-3 mr-1" />
-              {isGenerating ? 'Generating...' : 'Download PDF'}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="default"
+                  size="sm"
+                  disabled={isGenerating}
+                  className="text-xs rounded-l-none"
+                >
+                  <Download className="w-3 h-3 mr-1" />
+                  {isGenerating ? 'Generating...' : 'Download'}
+                  <ChevronDown className="w-3 h-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-popover border border-border z-50">
+                <DropdownMenuItem onClick={handleDownloadPDF} className="cursor-pointer">
+                  <FileText className="w-4 h-4 mr-2 text-red-500" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">PDF Format</span>
+                    <span className="text-xs text-muted-foreground">Best for sharing</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownloadDocx} className="cursor-pointer">
+                  <FileType className="w-4 h-4 mr-2 text-blue-500" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">DOCX Format</span>
+                    <span className="text-xs text-muted-foreground">Editable in Word</span>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownloadTxt} className="cursor-pointer">
+                  <FileType2 className="w-4 h-4 mr-2 text-gray-500" />
+                  <div className="flex flex-col">
+                    <span className="font-medium">Plain Text</span>
+                    <span className="text-xs text-muted-foreground">For copy-paste</span>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -367,19 +419,34 @@ export function OptimizedResumePanel({ resumeText, score, previousScore, onClose
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => {
-                    handleDownloadPDF();
-                    setShowPreview(false);
-                  }}
-                  disabled={isGenerating}
-                  className="text-xs"
-                >
-                  <Download className="w-3 h-3 mr-1" />
-                  {isGenerating ? 'Generating...' : 'Download PDF'}
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      disabled={isGenerating}
+                      className="text-xs"
+                    >
+                      <Download className="w-3 h-3 mr-1" />
+                      {isGenerating ? 'Generating...' : 'Download'}
+                      <ChevronDown className="w-3 h-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover border border-border z-[60]">
+                    <DropdownMenuItem onClick={() => { handleDownloadPDF(); setShowPreview(false); }} className="cursor-pointer">
+                      <FileText className="w-4 h-4 mr-2 text-red-500" />
+                      <span className="font-medium">PDF Format</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { handleDownloadDocx(); setShowPreview(false); }} className="cursor-pointer">
+                      <FileType className="w-4 h-4 mr-2 text-blue-500" />
+                      <span className="font-medium">DOCX Format</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { handleDownloadTxt(); setShowPreview(false); }} className="cursor-pointer">
+                      <FileType2 className="w-4 h-4 mr-2 text-gray-500" />
+                      <span className="font-medium">Plain Text</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </DialogTitle>
           </DialogHeader>
