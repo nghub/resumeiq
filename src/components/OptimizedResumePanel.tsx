@@ -68,11 +68,31 @@ function ResumePreview({ resumeText, templateId }: { resumeText: string; templat
   const lines = resumeText.split('\n');
   const sectionHeaders = ['summary', 'experience', 'education', 'skills', 'certifications', 'projects', 'work history', 'professional experience', 'technical skills'];
 
+  // Helper to detect contact info lines (should be in header only)
+  const isContactInfoLine = (line: string) => {
+    const trimmed = line.trim();
+    // Skip if it contains email or phone patterns typically shown in header
+    if (parsed.email && trimmed.includes(parsed.email)) return true;
+    if (parsed.phone && trimmed.includes(parsed.phone)) return true;
+    if (parsed.linkedin && trimmed.includes(parsed.linkedin)) return true;
+    // Skip lines that look like contact info (contains multiple separators with short segments)
+    if ((trimmed.includes('|') || trimmed.includes('•')) && 
+        (trimmed.includes('@') || trimmed.match(/\d{3}[-.\s]?\d{3}[-.\s]?\d{4}/))) {
+      return true;
+    }
+    return false;
+  };
+
   // Filter content for sidebar templates - remove skills/education from main content
   const getMainContent = () => {
+    let filteredLines = lines;
+    
+    // Always filter out contact info lines (they're in header)
+    filteredLines = filteredLines.filter(line => !isContactInfoLine(line));
+    
     if (templateId === 'sapphire-sidebar' || templateId === 'royal-rightrail') {
       let inSkillsOrEducation = false;
-      return lines.filter(line => {
+      filteredLines = filteredLines.filter(line => {
         const trimmed = line.trim().toLowerCase();
         if (trimmed.includes('skills') || trimmed.includes('education')) {
           inSkillsOrEducation = true;
@@ -84,7 +104,12 @@ function ResumePreview({ resumeText, templateId }: { resumeText: string; templat
         return !inSkillsOrEducation;
       });
     }
-    return lines;
+    return filteredLines;
+  };
+  
+  // Get filtered lines for single-column layouts
+  const getFilteredLines = () => {
+    return lines.filter(line => !isContactInfoLine(line));
   };
 
   // Sidebar-left layout (Sapphire)
@@ -307,7 +332,7 @@ function ResumePreview({ resumeText, templateId }: { resumeText: string; templat
 
       {/* Content */}
       <div className="space-y-1">
-        {lines.slice(parsed.name ? 1 : 0).map((line, idx) => {
+        {getFilteredLines().slice(parsed.name ? 1 : 0).map((line, idx) => {
           const trimmed = line.trim();
           if (!trimmed) return <div key={idx} className="h-2" />;
           
