@@ -27,6 +27,27 @@ interface ResumeSection {
   certifications?: string[];
 }
 
+// Section patterns for detection
+const sectionPatterns = {
+  summary: /^(?:summary|profile|professional summary|objective|about)\s*:?\s*$/i,
+  experience: /^(?:experience|work history|employment|professional experience|work experience)\s*:?\s*$/i,
+  education: /^(?:education|academic|academic background)\s*:?\s*$/i,
+  certifications: /^(?:certifications?|certificates?|licenses?|credentials?)\s*:?\s*$/i,
+  skills: /^(?:skills|technical skills|core competencies|key skills)\s*:?\s*$/i
+};
+
+// Ordered section names for output
+export const orderedSections = ['summary', 'experience', 'education', 'certifications', 'skills'] as const;
+export type SectionName = typeof orderedSections[number];
+
+export interface ParsedSections {
+  summary: string[];
+  experience: string[];
+  education: string[];
+  certifications: string[];
+  skills: string[];
+}
+
 // Parse resume text into sections
 export function parseResumeText(text: string): ResumeSection {
   const lines = text.split('\n').filter(l => l.trim());
@@ -65,6 +86,90 @@ export function parseResumeText(text: string): ResumeSection {
   }
   
   return result;
+}
+
+// Parse resume into ordered sections
+export function parseResumeIntoSections(text: string): { header: string[]; sections: ParsedSections } {
+  const lines = text.split('\n');
+  const header: string[] = [];
+  const sections: ParsedSections = {
+    summary: [],
+    experience: [],
+    education: [],
+    certifications: [],
+    skills: []
+  };
+  
+  let currentSection: SectionName | null = null;
+  let headerDone = false;
+  
+  // Detect which section a line represents
+  const detectSection = (line: string): SectionName | null => {
+    const trimmed = line.trim();
+    for (const [name, pattern] of Object.entries(sectionPatterns)) {
+      if (pattern.test(trimmed)) {
+        return name as SectionName;
+      }
+    }
+    // Also check for partial matches (e.g., "PROFESSIONAL EXPERIENCE")
+    const lower = trimmed.toLowerCase();
+    if (lower.includes('summary') || lower.includes('profile') || lower.includes('objective')) return 'summary';
+    if (lower.includes('experience') || lower.includes('work history') || lower.includes('employment')) return 'experience';
+    if (lower.includes('education') || lower.includes('academic')) return 'education';
+    if (lower.includes('certification') || lower.includes('certificate') || lower.includes('license')) return 'certifications';
+    if (lower.includes('skills') || lower.includes('competencies')) return 'skills';
+    return null;
+  };
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Check if this is a section header
+    const detectedSection = detectSection(trimmed);
+    if (detectedSection && trimmed.length < 50) {
+      currentSection = detectedSection;
+      headerDone = true;
+      continue; // Don't add the section header to content
+    }
+    
+    // If we haven't hit any section yet, this is header content
+    if (!headerDone && !currentSection) {
+      // Check if this looks like contact info or name (header content)
+      if (trimmed) {
+        header.push(line);
+      }
+      continue;
+    }
+    
+    // Add to current section
+    if (currentSection) {
+      sections[currentSection].push(line);
+    }
+  }
+  
+  return { header, sections };
+}
+
+// Format line as bullet point if it's content
+function formatAsBullet(line: string): string {
+  const trimmed = line.trim();
+  if (!trimmed) return '';
+  
+  // Already has bullet
+  if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
+    return `• ${trimmed.replace(/^[-•*]\s*/, '')}`;
+  }
+  
+  // Skip lines that look like headers (company names, dates, etc.)
+  const looksLikeHeader = /^[A-Z][^.!?]*(?:\d{4}|present|current)/i.test(trimmed) ||
+                          /^\w+(?:\s+\w+)?(?:\s*[|–-]\s*|\s{2,})/.test(trimmed);
+  
+  if (looksLikeHeader) {
+    return trimmed;
+  }
+  
+  // Add bullet to content lines
+  return `• ${trimmed}`;
 }
 
 // Generate PDF with template styling
@@ -414,70 +519,98 @@ export function generateResumePDF(
       break;
   }
   
-  // Add resume content - clean text version
-  const cleanLines = resumeText.split('\n');
-  let currentSection = '';
+  // Parse resume into ordered sections
+  const { sections } = parseResumeIntoSections(resumeText);
   
-  cleanLines.forEach((line, index) => {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      y += lineHeight / 2;
-      return;
-    }
+  // Section display names
+  const sectionDisplayNames: Record<SectionName, string> = {
+    summary: 'SUMMARY',
+    experience: 'PROFESSIONAL EXPERIENCE',
+    education: 'EDUCATION',
+    certifications: 'CERTIFICATIONS',
+    skills: 'SKILLS'
+  };
+  
+  // Render sections in order
+  for (const sectionName of orderedSections) {
+    const sectionContent = sections[sectionName];
+    if (!sectionContent || sectionContent.filter(l => l.trim()).length === 0) continue;
     
     // Check if we need a new page
-    if (y > pageHeight - margin - 40) {
+    if (y > pageHeight - margin - 60) {
       doc.addPage();
       y = margin;
     }
     
-    // Detect section headers
-    const sectionHeaders = ['summary', 'experience', 'education', 'skills', 'certifications', 'projects', 'work history', 'professional experience', 'technical skills'];
-    const isHeader = sectionHeaders.some(h => trimmed.toLowerCase().includes(h) && trimmed.length < 40);
+    // Section header
+    y += 8;
     
-    if (isHeader) {
-      y += 8;
-      currentSection = trimmed;
-      
-      if (templateId === 'executive') {
-        // Gray background for headers
-        doc.setFillColor('#f3f4f6');
-        doc.rect(margin - 4, y - 12, contentWidth + 8, 18, 'F');
-      }
-      
-      addText(trimmed.toUpperCase(), margin, contentWidth, {
-        fontSize: 12,
-        bold: true,
-        color: colors.primary,
-      });
-      
-      if (templateId === 'modern') {
-        doc.setDrawColor(colors.accent);
-        doc.setLineWidth(1);
-        doc.line(margin, y, margin + 60, y);
-        y += 4;
-      }
-      
-      y += 4;
-      return;
+    if (templateId === 'executive') {
+      doc.setFillColor('#f3f4f6');
+      doc.rect(margin - 4, y - 12, contentWidth + 8, 18, 'F');
     }
     
-    // Bullet points
-    if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
-      const bulletText = trimmed.replace(/^[-•*]\s*/, '');
-      addText(`• ${bulletText}`, margin + 12, contentWidth - 12, {
-        fontSize: 10,
-        color: colors.text,
-      });
-      return;
-    }
-    
-    // Regular text
-    addText(trimmed, margin, contentWidth, {
-      fontSize: 10,
-      color: colors.text,
+    addText(sectionDisplayNames[sectionName], margin, contentWidth, {
+      fontSize: 12,
+      bold: true,
+      color: colors.primary,
     });
-  });
+    
+    if (templateId === 'modern') {
+      doc.setDrawColor(colors.accent);
+      doc.setLineWidth(1);
+      doc.line(margin, y, margin + 60, y);
+      y += 4;
+    }
+    
+    y += 4;
+    
+    // Section content
+    for (const line of sectionContent) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        y += lineHeight / 2;
+        continue;
+      }
+      
+      // Check if we need a new page
+      if (y > pageHeight - margin - 40) {
+        doc.addPage();
+        y = margin;
+      }
+      
+      // Format content with bullets where appropriate
+      const isBulletLine = trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*');
+      const looksLikeHeader = /^[A-Z][^.!?]*(?:\d{4}|present|current)/i.test(trimmed) ||
+                              /^\w+(?:\s+\w+)?(?:\s*[|–-]\s*|\s{2,})/.test(trimmed);
+      
+      if (isBulletLine) {
+        const bulletText = trimmed.replace(/^[-•*]\s*/, '');
+        addText(`• ${bulletText}`, margin + 12, contentWidth - 12, {
+          fontSize: 10,
+          color: colors.text,
+        });
+      } else if (looksLikeHeader) {
+        // Company names, titles with dates - render as-is
+        addText(trimmed, margin, contentWidth, {
+          fontSize: 10,
+          color: colors.text,
+          bold: true,
+        });
+      } else if (sectionName === 'skills') {
+        // Skills should be bullet points
+        addText(`• ${trimmed}`, margin + 12, contentWidth - 12, {
+          fontSize: 10,
+          color: colors.text,
+        });
+      } else {
+        addText(trimmed, margin, contentWidth, {
+          fontSize: 10,
+          color: colors.text,
+        });
+      }
+    }
+  }
   
   // Generate filename
   const name = (parsed.name || contactName || 'Resume').replace(/[^a-zA-Z\s]/g, '').trim();
@@ -577,74 +710,111 @@ export async function generateResumeDocx(
     );
   }
   
-  // Process remaining content
-  lines.forEach((line) => {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      children.push(new Paragraph({ spacing: { after: 100 } }));
-      return;
-    }
+  // Parse resume into ordered sections
+  const { sections } = parseResumeIntoSections(resumeText);
+  
+  // Section display names
+  const sectionDisplayNames: Record<SectionName, string> = {
+    summary: 'SUMMARY',
+    experience: 'PROFESSIONAL EXPERIENCE',
+    education: 'EDUCATION',
+    certifications: 'CERTIFICATIONS',
+    skills: 'SKILLS'
+  };
+  
+  // Render sections in order
+  for (const sectionName of orderedSections) {
+    const sectionContent = sections[sectionName];
+    if (!sectionContent || sectionContent.filter(l => l.trim()).length === 0) continue;
     
-    // Skip if it's the name we already added
-    if (trimmed === name) return;
-    
-    // Check if it's a section header
-    const isHeader = sectionHeaders.some(h => trimmed.toLowerCase().includes(h) && trimmed.length < 40);
-    
-    if (isHeader) {
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: trimmed.toUpperCase(),
-              bold: true,
-              size: 24,
-              color: colors.primary.replace('#', ''),
-            }),
-          ],
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 240, after: 120 },
-          border: templateId === 'modern' ? {
-            bottom: { style: BorderStyle.SINGLE, size: 4, color: colors.accent.replace('#', '') },
-          } : templateId === 'executive' ? {
-            bottom: { style: BorderStyle.SINGLE, size: 6, color: colors.primary.replace('#', '') },
-          } : undefined,
-        })
-      );
-      return;
-    }
-    
-    // Bullet points
-    if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
-      const bulletText = trimmed.replace(/^[-•*]\s*/, '');
-      children.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `• ${bulletText}`,
-              size: 22,
-            }),
-          ],
-          indent: { left: 360 },
-          spacing: { after: 80 },
-        })
-      );
-      return;
-    }
-    
-    // Regular text
+    // Section header
     children.push(
       new Paragraph({
         children: [
           new TextRun({
-            text: trimmed,
-            size: 22,
+            text: sectionDisplayNames[sectionName],
+            bold: true,
+            size: 24,
+            color: colors.primary.replace('#', ''),
           }),
         ],
-        spacing: { after: 80 },
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 240, after: 120 },
+        border: templateId === 'modern' ? {
+          bottom: { style: BorderStyle.SINGLE, size: 4, color: colors.accent.replace('#', '') },
+        } : templateId === 'executive' ? {
+          bottom: { style: BorderStyle.SINGLE, size: 6, color: colors.primary.replace('#', '') },
+        } : undefined,
       })
     );
-  });
+    
+    // Section content
+    for (const line of sectionContent) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        children.push(new Paragraph({ spacing: { after: 100 } }));
+        continue;
+      }
+      
+      const isBulletLine = trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*');
+      const looksLikeHeader = /^[A-Z][^.!?]*(?:\d{4}|present|current)/i.test(trimmed) ||
+                              /^\w+(?:\s+\w+)?(?:\s*[|–-]\s*|\s{2,})/.test(trimmed);
+      
+      if (isBulletLine) {
+        const bulletText = trimmed.replace(/^[-•*]\s*/, '');
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `• ${bulletText}`,
+                size: 22,
+              }),
+            ],
+            indent: { left: 360 },
+            spacing: { after: 80 },
+          })
+        );
+      } else if (looksLikeHeader) {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: trimmed,
+                size: 22,
+                bold: true,
+              }),
+            ],
+            spacing: { after: 80 },
+          })
+        );
+      } else if (sectionName === 'skills') {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `• ${trimmed}`,
+                size: 22,
+              }),
+            ],
+            indent: { left: 360 },
+            spacing: { after: 80 },
+          })
+        );
+      } else {
+        children.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: trimmed,
+                size: 22,
+              }),
+            ],
+            spacing: { after: 80 },
+          })
+        );
+      }
+    }
+  }
   
   const doc = new Document({
     sections: [{

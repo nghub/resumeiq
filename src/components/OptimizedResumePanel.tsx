@@ -32,7 +32,7 @@ import {
   FileType2
 } from 'lucide-react';
 import { resumeTemplates, TemplateId, colorSchemes } from '@/lib/resumeTemplates';
-import { generateResumePDF, parseResumeText, generateResumeDocx, generatePlainText } from '@/lib/pdfGenerator';
+import { generateResumePDF, parseResumeText, parseResumeIntoSections, orderedSections, generateResumeDocx, generatePlainText, type SectionName } from '@/lib/pdfGenerator';
 
 interface OptimizedResumePanelProps {
   resumeText: string;
@@ -62,20 +62,25 @@ function getTemplateColors(templateId: TemplateId) {
 // Template preview component that mimics PDF styling
 function ResumePreview({ resumeText, templateId }: { resumeText: string; templateId: TemplateId }) {
   const parsed = parseResumeText(resumeText);
+  const { sections } = parseResumeIntoSections(resumeText);
   const template = resumeTemplates.find(t => t.id === templateId);
   const colors = getTemplateColors(templateId);
   
-  const lines = resumeText.split('\n');
-  const sectionHeaders = ['summary', 'experience', 'education', 'skills', 'certifications', 'projects', 'work history', 'professional experience', 'technical skills'];
+  // Section display names
+  const sectionDisplayNames: Record<SectionName, string> = {
+    summary: 'SUMMARY',
+    experience: 'PROFESSIONAL EXPERIENCE',
+    education: 'EDUCATION',
+    certifications: 'CERTIFICATIONS',
+    skills: 'SKILLS'
+  };
 
   // Helper to detect contact info lines (should be in header only)
   const isContactInfoLine = (line: string) => {
     const trimmed = line.trim();
-    // Skip if it contains email or phone patterns typically shown in header
     if (parsed.email && trimmed.includes(parsed.email)) return true;
     if (parsed.phone && trimmed.includes(parsed.phone)) return true;
     if (parsed.linkedin && trimmed.includes(parsed.linkedin)) return true;
-    // Skip lines that look like contact info (contains multiple separators with short segments)
     if ((trimmed.includes('|') || trimmed.includes('•')) && 
         (trimmed.includes('@') || trimmed.match(/\d{3}[-.\s]?\d{3}[-.\s]?\d{4}/))) {
       return true;
@@ -83,33 +88,69 @@ function ResumePreview({ resumeText, templateId }: { resumeText: string; templat
     return false;
   };
 
-  // Filter content for sidebar templates - remove skills/education from main content
-  const getMainContent = () => {
-    let filteredLines = lines;
-    
-    // Always filter out contact info lines (they're in header)
-    filteredLines = filteredLines.filter(line => !isContactInfoLine(line));
-    
-    if (templateId === 'sapphire-sidebar' || templateId === 'royal-rightrail') {
-      let inSkillsOrEducation = false;
-      filteredLines = filteredLines.filter(line => {
-        const trimmed = line.trim().toLowerCase();
-        if (trimmed.includes('skills') || trimmed.includes('education')) {
-          inSkillsOrEducation = true;
-          return false;
-        }
-        if (inSkillsOrEducation && sectionHeaders.some(h => trimmed.includes(h))) {
-          inSkillsOrEducation = false;
-        }
-        return !inSkillsOrEducation;
-      });
-    }
-    return filteredLines;
+  // Render a section's content with proper formatting
+  const renderSectionContent = (sectionName: SectionName, content: string[]) => {
+    return content.map((line, idx) => {
+      const trimmed = line.trim();
+      if (!trimmed) return <div key={idx} className="h-2" />;
+      
+      const isBulletLine = trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*');
+      const looksLikeHeader = /^[A-Z][^.!?]*(?:\d{4}|present|current)/i.test(trimmed) ||
+                              /^\w+(?:\s+\w+)?(?:\s*[|–-]\s*|\s{2,})/.test(trimmed);
+      
+      if (isBulletLine) {
+        return (
+          <div key={idx} className="pl-4" style={{ color: colors.text }}>
+            • {trimmed.replace(/^[-•*]\s*/, '')}
+          </div>
+        );
+      } else if (looksLikeHeader) {
+        return (
+          <div key={idx} className="font-semibold" style={{ color: colors.text }}>
+            {trimmed}
+          </div>
+        );
+      } else if (sectionName === 'skills') {
+        return (
+          <div key={idx} className="pl-4" style={{ color: colors.text }}>
+            • {trimmed}
+          </div>
+        );
+      }
+      
+      return (
+        <div key={idx} style={{ color: colors.text }}>
+          {trimmed}
+        </div>
+      );
+    });
   };
-  
-  // Get filtered lines for single-column layouts
-  const getFilteredLines = () => {
-    return lines.filter(line => !isContactInfoLine(line));
+
+  // Render ordered sections
+  const renderOrderedSections = (filterForSidebar = false) => {
+    return orderedSections.map(sectionName => {
+      const content = sections[sectionName];
+      if (!content || content.filter(l => l.trim()).length === 0) return null;
+      
+      // For sidebar templates, skip skills/education in main content
+      if (filterForSidebar && (sectionName === 'skills' || sectionName === 'education')) {
+        return null;
+      }
+      
+      return (
+        <div key={sectionName} className="mt-4">
+          <div className="mb-2">
+            <span className="uppercase text-xs tracking-wide font-bold" style={{ color: colors.primary }}>
+              {sectionDisplayNames[sectionName]}
+            </span>
+            <div className="h-0.5 mt-1" style={{ background: colors.accent, width: '40px' }} />
+          </div>
+          <div className="space-y-1">
+            {renderSectionContent(sectionName, content)}
+          </div>
+        </div>
+      );
+    });
   };
 
   // Sidebar-left layout (Sapphire)
@@ -144,41 +185,9 @@ function ResumePreview({ resumeText, templateId }: { resumeText: string; templat
           )}
         </div>
         
-        {/* Main content */}
+        {/* Main content - ordered sections */}
         <div className="col-span-2 p-6">
-          <div className="space-y-1">
-            {getMainContent().slice(parsed.name ? 1 : 0).map((line, idx) => {
-              const trimmed = line.trim();
-              if (!trimmed) return <div key={idx} className="h-2" />;
-              
-              const isHeader = sectionHeaders.some(h => trimmed.toLowerCase().includes(h) && trimmed.length < 40);
-              
-              if (isHeader) {
-                return (
-                  <div key={idx} className="mt-4 mb-2">
-                    <span className="uppercase text-xs tracking-wide font-bold" style={{ color: '#2563EB' }}>
-                      {trimmed}
-                    </span>
-                    <div className="h-0.5 mt-1" style={{ background: '#3B82F6', width: '40px' }} />
-                  </div>
-                );
-              }
-              
-              if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
-                return (
-                  <div key={idx} className="pl-4" style={{ color: colors.text }}>
-                    • {trimmed.replace(/^[-•*]\s*/, '')}
-                  </div>
-                );
-              }
-              
-              return (
-                <div key={idx} style={{ color: colors.text }}>
-                  {trimmed}
-                </div>
-              );
-            })}
-          </div>
+          {renderOrderedSections(true)}
         </div>
       </div>
     );
@@ -191,45 +200,13 @@ function ResumePreview({ resumeText, templateId }: { resumeText: string; templat
         className="bg-white text-black min-h-[600px] shadow-lg grid grid-cols-3"
         style={{ fontFamily: template?.fontFamily.body || 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.4' }}
       >
-        {/* Main content */}
+        {/* Main content - ordered sections */}
         <div className="col-span-2 p-6 border-r-2" style={{ borderColor: '#2563EB' }}>
           <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
             {parsed.name || 'Your Name'}
           </h1>
           
-          <div className="space-y-1 mt-4">
-            {getMainContent().slice(parsed.name ? 1 : 0).map((line, idx) => {
-              const trimmed = line.trim();
-              if (!trimmed) return <div key={idx} className="h-2" />;
-              
-              const isHeader = sectionHeaders.some(h => trimmed.toLowerCase().includes(h) && trimmed.length < 40);
-              
-              if (isHeader) {
-                return (
-                  <div key={idx} className="mt-4 mb-2">
-                    <span className="uppercase text-xs tracking-wide font-bold" style={{ color: '#0F172A' }}>
-                      {trimmed}
-                    </span>
-                    <div className="h-0.5 mt-1" style={{ background: '#2563EB', width: '40px' }} />
-                  </div>
-                );
-              }
-              
-              if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
-                return (
-                  <div key={idx} className="pl-4" style={{ color: colors.text }}>
-                    • {trimmed.replace(/^[-•*]\s*/, '')}
-                  </div>
-                );
-              }
-              
-              return (
-                <div key={idx} style={{ color: colors.text }}>
-                  {trimmed}
-                </div>
-              );
-            })}
-          </div>
+          {renderOrderedSections(true)}
         </div>
         
         {/* Light blue right sidebar */}
@@ -330,38 +307,9 @@ function ResumePreview({ resumeText, templateId }: { resumeText: string; templat
         </div>
       )}
 
-      {/* Content */}
+      {/* Content - Ordered Sections */}
       <div className="space-y-1">
-        {getFilteredLines().slice(parsed.name ? 1 : 0).map((line, idx) => {
-          const trimmed = line.trim();
-          if (!trimmed) return <div key={idx} className="h-2" />;
-          
-          const isHeader = sectionHeaders.some(h => trimmed.toLowerCase().includes(h) && trimmed.length < 40);
-          
-          if (isHeader) {
-            return (
-              <div key={idx} className="mt-4 mb-2">
-                <span style={getSectionHeaderStyle()} className="uppercase text-xs tracking-wide">
-                  {trimmed}
-                </span>
-              </div>
-            );
-          }
-          
-          if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
-            return (
-              <div key={idx} className="pl-4" style={{ color: colors.text }}>
-                • {trimmed.replace(/^[-•*]\s*/, '')}
-              </div>
-            );
-          }
-          
-          return (
-            <div key={idx} style={{ color: colors.text }}>
-              {trimmed}
-            </div>
-          );
-        })}
+        {renderOrderedSections(false)}
       </div>
     </div>
   );
