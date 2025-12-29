@@ -42,14 +42,198 @@ interface OptimizedResumePanelProps {
 }
 
 // Template preview component that mimics PDF styling
+// Get colors for template
+function getTemplateColors(templateId: TemplateId) {
+  switch (templateId) {
+    case 'classic': return colorSchemes.black;
+    case 'modern': return colorSchemes.teal;
+    case 'executive': return colorSchemes.blue;
+    case 'tech': return colorSchemes.gray;
+    case 'corporate-navy':
+    case 'sapphire-sidebar':
+      return { primary: '#0F172A', secondary: '#2563EB', accent: '#3B82F6', text: '#0F172A', muted: '#64748B' };
+    case 'azure-minimal':
+    case 'royal-rightrail':
+      return { primary: '#2563EB', secondary: '#0F172A', accent: '#EFF6FF', text: '#0F172A', muted: '#64748B' };
+    default: return colorSchemes.teal;
+  }
+}
+
+// Template preview component that mimics PDF styling
 function ResumePreview({ resumeText, templateId }: { resumeText: string; templateId: TemplateId }) {
   const parsed = parseResumeText(resumeText);
   const template = resumeTemplates.find(t => t.id === templateId);
-  const colors = colorSchemes[templateId === 'classic' ? 'black' : templateId === 'modern' ? 'teal' : templateId === 'executive' ? 'blue' : 'gray'];
+  const colors = getTemplateColors(templateId);
   
   const lines = resumeText.split('\n');
   const sectionHeaders = ['summary', 'experience', 'education', 'skills', 'certifications', 'projects', 'work history', 'professional experience', 'technical skills'];
-  
+
+  // Filter content for sidebar templates - remove skills/education from main content
+  const getMainContent = () => {
+    if (templateId === 'sapphire-sidebar' || templateId === 'royal-rightrail') {
+      let inSkillsOrEducation = false;
+      return lines.filter(line => {
+        const trimmed = line.trim().toLowerCase();
+        if (trimmed.includes('skills') || trimmed.includes('education')) {
+          inSkillsOrEducation = true;
+          return false;
+        }
+        if (inSkillsOrEducation && sectionHeaders.some(h => trimmed.includes(h))) {
+          inSkillsOrEducation = false;
+        }
+        return !inSkillsOrEducation;
+      });
+    }
+    return lines;
+  };
+
+  // Sidebar-left layout (Sapphire)
+  if (templateId === 'sapphire-sidebar') {
+    return (
+      <div 
+        className="bg-white text-black min-h-[600px] shadow-lg grid grid-cols-3"
+        style={{ fontFamily: template?.fontFamily.body || 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.4' }}
+      >
+        {/* Navy left sidebar */}
+        <div className="col-span-1 p-4" style={{ background: '#0F172A', color: 'white' }}>
+          <h1 className="text-lg font-bold mb-4 leading-tight">{parsed.name || 'Your Name'}</h1>
+          
+          <div className="mb-4">
+            <h3 className="text-xs font-bold uppercase tracking-wide mb-2 opacity-80">Contact</h3>
+            <div className="text-xs space-y-1 opacity-90">
+              {parsed.email && <div>{parsed.email}</div>}
+              {parsed.phone && <div>{parsed.phone}</div>}
+              {parsed.linkedin && <div className="break-all">{parsed.linkedin}</div>}
+            </div>
+          </div>
+          
+          {parsed.skills && parsed.skills.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-xs font-bold uppercase tracking-wide mb-2 opacity-80">Skills</h3>
+              <div className="text-xs space-y-1 opacity-90">
+                {parsed.skills.slice(0, 12).map((skill, idx) => (
+                  <div key={idx}>• {skill}</div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Main content */}
+        <div className="col-span-2 p-6">
+          <div className="space-y-1">
+            {getMainContent().slice(parsed.name ? 1 : 0).map((line, idx) => {
+              const trimmed = line.trim();
+              if (!trimmed) return <div key={idx} className="h-2" />;
+              
+              const isHeader = sectionHeaders.some(h => trimmed.toLowerCase().includes(h) && trimmed.length < 40);
+              
+              if (isHeader) {
+                return (
+                  <div key={idx} className="mt-4 mb-2">
+                    <span className="uppercase text-xs tracking-wide font-bold" style={{ color: '#2563EB' }}>
+                      {trimmed}
+                    </span>
+                    <div className="h-0.5 mt-1" style={{ background: '#3B82F6', width: '40px' }} />
+                  </div>
+                );
+              }
+              
+              if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
+                return (
+                  <div key={idx} className="pl-4" style={{ color: colors.text }}>
+                    • {trimmed.replace(/^[-•*]\s*/, '')}
+                  </div>
+                );
+              }
+              
+              return (
+                <div key={idx} style={{ color: colors.text }}>
+                  {trimmed}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Sidebar-right layout (Royal Right-Rail)
+  if (templateId === 'royal-rightrail') {
+    return (
+      <div 
+        className="bg-white text-black min-h-[600px] shadow-lg grid grid-cols-3"
+        style={{ fontFamily: template?.fontFamily.body || 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.4' }}
+      >
+        {/* Main content */}
+        <div className="col-span-2 p-6 border-r-2" style={{ borderColor: '#2563EB' }}>
+          <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
+            {parsed.name || 'Your Name'}
+          </h1>
+          
+          <div className="space-y-1 mt-4">
+            {getMainContent().slice(parsed.name ? 1 : 0).map((line, idx) => {
+              const trimmed = line.trim();
+              if (!trimmed) return <div key={idx} className="h-2" />;
+              
+              const isHeader = sectionHeaders.some(h => trimmed.toLowerCase().includes(h) && trimmed.length < 40);
+              
+              if (isHeader) {
+                return (
+                  <div key={idx} className="mt-4 mb-2">
+                    <span className="uppercase text-xs tracking-wide font-bold" style={{ color: '#0F172A' }}>
+                      {trimmed}
+                    </span>
+                    <div className="h-0.5 mt-1" style={{ background: '#2563EB', width: '40px' }} />
+                  </div>
+                );
+              }
+              
+              if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
+                return (
+                  <div key={idx} className="pl-4" style={{ color: colors.text }}>
+                    • {trimmed.replace(/^[-•*]\s*/, '')}
+                  </div>
+                );
+              }
+              
+              return (
+                <div key={idx} style={{ color: colors.text }}>
+                  {trimmed}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Light blue right sidebar */}
+        <div className="col-span-1 p-4" style={{ background: '#EFF6FF' }}>
+          <div className="mb-4">
+            <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#0F172A' }}>Contact</h3>
+            <div className="text-xs space-y-1" style={{ color: '#64748B' }}>
+              {parsed.email && <div>{parsed.email}</div>}
+              {parsed.phone && <div>{parsed.phone}</div>}
+              {parsed.linkedin && <div className="break-all">{parsed.linkedin}</div>}
+            </div>
+          </div>
+          
+          {parsed.skills && parsed.skills.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#0F172A' }}>Skills</h3>
+              <div className="text-xs space-y-1" style={{ color: '#64748B' }}>
+                {parsed.skills.slice(0, 12).map((skill, idx) => (
+                  <div key={idx}>• {skill}</div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Single column layouts
   const getHeaderStyle = () => {
     switch (templateId) {
       case 'classic':
@@ -60,6 +244,10 @@ function ResumePreview({ resumeText, templateId }: { resumeText: string; templat
         return { background: colors.primary, color: 'white', padding: '20px', marginLeft: '-24px', marginRight: '-24px', marginTop: '-24px' };
       case 'tech':
         return { borderBottom: `1px solid ${colors.accent}` };
+      case 'corporate-navy':
+        return { background: '#0F172A', color: 'white', padding: '20px', marginLeft: '-24px', marginRight: '-24px', marginTop: '-24px' };
+      case 'azure-minimal':
+        return { textAlign: 'center' as const, paddingBottom: '16px' };
       default:
         return {};
     }
@@ -75,6 +263,10 @@ function ResumePreview({ resumeText, templateId }: { resumeText: string; templat
         return { background: '#f3f4f6', padding: '4px 8px', color: colors.primary, fontWeight: 'bold' as const };
       case 'tech':
         return { color: colors.primary, fontFamily: 'monospace', fontWeight: 'bold' as const };
+      case 'corporate-navy':
+        return { color: '#2563EB', fontWeight: 'bold' as const, borderBottom: '1px solid #3B82F6', display: 'inline-block' };
+      case 'azure-minimal':
+        return { color: '#0F172A', fontWeight: 'bold' as const, borderBottom: '2px solid #EFF6FF', display: 'inline-block', paddingBottom: '4px' };
       default:
         return {};
     }
@@ -89,18 +281,29 @@ function ResumePreview({ resumeText, templateId }: { resumeText: string; templat
       <div style={getHeaderStyle()} className="mb-4 pb-2">
         <h1 
           style={{ 
-            fontSize: templateId === 'modern' ? '24px' : templateId === 'executive' ? '22px' : '20px',
+            fontSize: templateId === 'azure-minimal' ? '28px' : templateId === 'modern' ? '24px' : templateId === 'executive' || templateId === 'corporate-navy' ? '22px' : '20px',
             fontWeight: 'bold',
-            color: templateId === 'executive' ? 'white' : templateId === 'modern' ? colors.primary : '#000',
+            color: templateId === 'executive' || templateId === 'corporate-navy' ? 'white' : templateId === 'modern' || templateId === 'azure-minimal' ? colors.primary : '#000',
             marginBottom: '4px'
           }}
         >
           {parsed.name || 'Your Name'}
         </h1>
-        <div style={{ fontSize: '10px', color: templateId === 'executive' ? 'rgba(255,255,255,0.9)' : '#666' }}>
+        <div style={{ 
+          fontSize: '10px', 
+          color: templateId === 'executive' || templateId === 'corporate-navy' ? 'rgba(255,255,255,0.9)' : '#666',
+          textAlign: templateId === 'azure-minimal' ? 'center' : undefined
+        }}>
           {[parsed.email, parsed.phone, parsed.linkedin].filter(Boolean).join(' | ')}
         </div>
       </div>
+
+      {/* Azure Minimal divider */}
+      {templateId === 'azure-minimal' && (
+        <div className="flex justify-center mb-4">
+          <div className="h-0.5 w-32" style={{ background: '#EFF6FF' }} />
+        </div>
+      )}
 
       {/* Content */}
       <div className="space-y-1">
