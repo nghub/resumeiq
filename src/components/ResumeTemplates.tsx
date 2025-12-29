@@ -95,6 +95,71 @@ const templatePreviews: Record<TemplateId, React.ReactNode> = {
       </div>
     </div>
   ),
+  'corporate-navy': (
+    <div className="w-full h-full bg-white text-[6px] font-sans">
+      <div className="p-2 mb-2" style={{ background: '#0F172A' }}>
+        <div className="font-bold text-[9px] text-white">JOHN DOE</div>
+        <div className="text-[5px] text-white/80">email@example.com | (555) 123-4567</div>
+      </div>
+      <div className="px-3 space-y-1">
+        <div className="font-bold text-[7px]" style={{ color: '#2563EB' }}>EXPERIENCE</div>
+        <div className="text-gray-700">Senior Developer</div>
+        <div className="font-bold text-[7px] mt-1" style={{ color: '#2563EB' }}>SKILLS</div>
+        <div className="text-gray-700">React, TypeScript</div>
+      </div>
+    </div>
+  ),
+  'azure-minimal': (
+    <div className="w-full h-full bg-white p-3 text-[6px] font-sans text-center">
+      <div className="mb-2">
+        <div className="font-bold text-[10px]" style={{ color: '#2563EB' }}>John Doe</div>
+        <div className="text-gray-500 text-[5px]">email@example.com | (555) 123-4567</div>
+        <div className="mx-auto w-12 h-[2px] mt-2" style={{ background: '#EFF6FF' }} />
+      </div>
+      <div className="text-left space-y-1">
+        <div className="font-bold text-[7px]" style={{ color: '#0F172A' }}>EXPERIENCE</div>
+        <div className="text-gray-700">Senior Developer at Tech Corp</div>
+      </div>
+    </div>
+  ),
+  'sapphire-sidebar': (
+    <div className="w-full h-full bg-white text-[6px] font-sans grid grid-cols-3">
+      <div className="col-span-1 p-2 text-white" style={{ background: '#0F172A' }}>
+        <div className="font-bold text-[7px] mb-2">John Doe</div>
+        <div className="text-[5px] opacity-80 mb-2">
+          <div>CONTACT</div>
+          <div className="opacity-70">email@ex.com</div>
+        </div>
+        <div className="text-[5px] opacity-80">
+          <div>SKILLS</div>
+          <div className="opacity-70">React, Node</div>
+        </div>
+      </div>
+      <div className="col-span-2 p-2">
+        <div className="font-bold text-[7px]" style={{ color: '#2563EB' }}>EXPERIENCE</div>
+        <div className="text-gray-700">Senior Dev</div>
+      </div>
+    </div>
+  ),
+  'royal-rightrail': (
+    <div className="w-full h-full bg-white text-[6px] font-sans grid grid-cols-3">
+      <div className="col-span-2 p-2 border-r-2" style={{ borderColor: '#2563EB' }}>
+        <div className="font-bold text-[8px] mb-1" style={{ color: '#0F172A' }}>John Doe</div>
+        <div className="font-bold text-[7px]" style={{ color: '#0F172A' }}>EXPERIENCE</div>
+        <div className="text-gray-700">Senior Developer</div>
+      </div>
+      <div className="col-span-1 p-2" style={{ background: '#EFF6FF' }}>
+        <div className="text-[5px] mb-2">
+          <div className="font-bold" style={{ color: '#0F172A' }}>CONTACT</div>
+          <div className="text-gray-600">email@ex.com</div>
+        </div>
+        <div className="text-[5px]">
+          <div className="font-bold" style={{ color: '#0F172A' }}>SKILLS</div>
+          <div className="text-gray-600">React, Node</div>
+        </div>
+      </div>
+    </div>
+  ),
 };
 
 export function ResumeTemplates({ resumeText, optimizedResume, contactName }: ResumeTemplatesProps) {
@@ -310,7 +375,7 @@ export function ResumeTemplates({ resumeText, optimizedResume, contactName }: Re
                 onValueChange={(v) => setCustomization(prev => ({ ...prev, colorScheme: v as any }))}
                 className="flex gap-3"
               >
-                {(['blue', 'teal', 'gray', 'black'] as const).map(color => (
+                {(['blue', 'teal', 'gray', 'black', 'navy'] as const).map(color => (
                   <div key={color} className="flex items-center gap-2">
                     <RadioGroupItem value={color} id={`color-${color}`} />
                     <Label htmlFor={`color-${color}`} className="capitalize cursor-pointer">
@@ -318,6 +383,7 @@ export function ResumeTemplates({ resumeText, optimizedResume, contactName }: Re
                         color === 'blue' ? 'bg-blue-600' :
                         color === 'teal' ? 'bg-teal-600' :
                         color === 'gray' ? 'bg-gray-600' :
+                        color === 'navy' ? 'bg-slate-900' :
                         'bg-black'
                       }`} />
                       {color}

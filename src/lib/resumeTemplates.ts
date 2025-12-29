@@ -1,4 +1,4 @@
-export type TemplateId = 'classic' | 'modern' | 'executive' | 'tech';
+export type TemplateId = 'classic' | 'modern' | 'executive' | 'tech' | 'corporate-navy' | 'azure-minimal' | 'sapphire-sidebar' | 'royal-rightrail';
 
 export interface ResumeTemplate {
   id: TemplateId;
@@ -17,6 +17,7 @@ export interface ResumeTemplate {
     muted: string;
   };
   spacing: 'compact' | 'comfortable';
+  layout?: 'single-column' | 'sidebar-left' | 'sidebar-right';
 }
 
 export const resumeTemplates: ResumeTemplate[] = [
@@ -37,6 +38,7 @@ export const resumeTemplates: ResumeTemplate[] = [
       muted: '#666666',
     },
     spacing: 'comfortable',
+    layout: 'single-column',
   },
   {
     id: 'modern',
@@ -55,6 +57,7 @@ export const resumeTemplates: ResumeTemplate[] = [
       muted: '#6b7280',
     },
     spacing: 'comfortable',
+    layout: 'single-column',
   },
   {
     id: 'executive',
@@ -73,6 +76,7 @@ export const resumeTemplates: ResumeTemplate[] = [
       muted: '#4a5568',
     },
     spacing: 'compact',
+    layout: 'single-column',
   },
   {
     id: 'tech',
@@ -91,11 +95,88 @@ export const resumeTemplates: ResumeTemplate[] = [
       muted: '#6b7280',
     },
     spacing: 'comfortable',
+    layout: 'single-column',
+  },
+  {
+    id: 'corporate-navy',
+    name: 'Corporate Navy',
+    description: 'Full-width navy header with white text, blue section headers',
+    previewImage: 'corporate-navy',
+    fontFamily: {
+      name: 'Arial',
+      body: 'Arial, sans-serif',
+    },
+    colors: {
+      primary: '#0F172A',
+      secondary: '#2563EB',
+      accent: '#3B82F6',
+      text: '#0F172A',
+      muted: '#64748B',
+    },
+    spacing: 'comfortable',
+    layout: 'single-column',
+  },
+  {
+    id: 'azure-minimal',
+    name: 'Azure Minimal',
+    description: 'White header with large blue name, centered contact info',
+    previewImage: 'azure-minimal',
+    fontFamily: {
+      name: 'Calibri',
+      body: 'Calibri, sans-serif',
+    },
+    colors: {
+      primary: '#2563EB',
+      secondary: '#0F172A',
+      accent: '#EFF6FF',
+      text: '#0F172A',
+      muted: '#64748B',
+    },
+    spacing: 'comfortable',
+    layout: 'single-column',
+  },
+  {
+    id: 'sapphire-sidebar',
+    name: 'Sapphire Sidebar',
+    description: 'Navy left sidebar with contact, skills & education',
+    previewImage: 'sapphire-sidebar',
+    fontFamily: {
+      name: 'Arial',
+      body: 'Arial, sans-serif',
+    },
+    colors: {
+      primary: '#0F172A',
+      secondary: '#2563EB',
+      accent: '#3B82F6',
+      text: '#0F172A',
+      muted: '#64748B',
+    },
+    spacing: 'compact',
+    layout: 'sidebar-left',
+  },
+  {
+    id: 'royal-rightrail',
+    name: 'Royal Right-Rail',
+    description: 'Light blue right sidebar with contact, skills & education',
+    previewImage: 'royal-rightrail',
+    fontFamily: {
+      name: 'Arial',
+      body: 'Arial, sans-serif',
+    },
+    colors: {
+      primary: '#2563EB',
+      secondary: '#0F172A',
+      accent: '#EFF6FF',
+      text: '#0F172A',
+      muted: '#64748B',
+    },
+    spacing: 'compact',
+    layout: 'sidebar-right',
   },
 ];
 
 export interface TemplateCustomization {
-  colorScheme: 'blue' | 'teal' | 'gray' | 'black';
+  colorScheme: 'blue' | 'teal' | 'gray' | 'black' | 'navy';
   fontFamily: 'arial' | 'calibri' | 'georgia' | 'times';
   spacing: 'compact' | 'comfortable';
   showCertifications: boolean;
@@ -117,6 +198,7 @@ export const colorSchemes = {
   teal: { primary: '#0d9488', secondary: '#115e59', accent: '#14b8a6', text: '#1f2937', muted: '#6b7280' },
   gray: { primary: '#374151', secondary: '#4b5563', accent: '#6b7280', text: '#111827', muted: '#6b7280' },
   black: { primary: '#000000', secondary: '#333333', accent: '#666666', text: '#000000', muted: '#666666' },
+  navy: { primary: '#0F172A', secondary: '#2563EB', accent: '#3B82F6', text: '#0F172A', muted: '#64748B' },
 };
 
 export const fontFamilies = {
