@@ -122,44 +122,6 @@ const templatePreviews: Record<TemplateId, React.ReactNode> = {
       </div>
     </div>
   ),
-  'sapphire-sidebar': (
-    <div className="w-full h-full bg-white text-[6px] font-sans grid grid-cols-3">
-      <div className="col-span-1 p-2 text-white" style={{ background: '#0F172A' }}>
-        <div className="font-bold text-[7px] mb-2">John Doe</div>
-        <div className="text-[5px] opacity-80 mb-2">
-          <div>CONTACT</div>
-          <div className="opacity-70">email@ex.com</div>
-        </div>
-        <div className="text-[5px] opacity-80">
-          <div>SKILLS</div>
-          <div className="opacity-70">React, Node</div>
-        </div>
-      </div>
-      <div className="col-span-2 p-2">
-        <div className="font-bold text-[7px]" style={{ color: '#2563EB' }}>EXPERIENCE</div>
-        <div className="text-gray-700">Senior Dev</div>
-      </div>
-    </div>
-  ),
-  'royal-rightrail': (
-    <div className="w-full h-full bg-white text-[6px] font-sans grid grid-cols-3">
-      <div className="col-span-2 p-2 border-r-2" style={{ borderColor: '#2563EB' }}>
-        <div className="font-bold text-[8px] mb-1" style={{ color: '#0F172A' }}>John Doe</div>
-        <div className="font-bold text-[7px]" style={{ color: '#0F172A' }}>EXPERIENCE</div>
-        <div className="text-gray-700">Senior Developer</div>
-      </div>
-      <div className="col-span-1 p-2" style={{ background: '#EFF6FF' }}>
-        <div className="text-[5px] mb-2">
-          <div className="font-bold" style={{ color: '#0F172A' }}>CONTACT</div>
-          <div className="text-gray-600">email@ex.com</div>
-        </div>
-        <div className="text-[5px]">
-          <div className="font-bold" style={{ color: '#0F172A' }}>SKILLS</div>
-          <div className="text-gray-600">React, Node</div>
-        </div>
-      </div>
-    </div>
-  ),
 };
 
 export function ResumeTemplates({ resumeText, optimizedResume, contactName }: ResumeTemplatesProps) {

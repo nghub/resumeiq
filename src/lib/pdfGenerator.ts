@@ -393,130 +393,6 @@ export function generateResumePDF(
       y += 20;
       break;
       
-    case 'sapphire-sidebar':
-      // Sapphire Sidebar - Navy left sidebar (1/3 width)
-      const sidebarWidth = pageWidth / 3;
-      doc.setFillColor('#0F172A');
-      doc.rect(0, 0, sidebarWidth, pageHeight, 'F');
-      
-      // Sidebar content - Contact, Skills, Education
-      let sidebarY = 40;
-      doc.setTextColor('#ffffff');
-      
-      // Name in sidebar
-      if (parsed.name || contactName) {
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        const nameLines = doc.splitTextToSize(parsed.name || contactName || 'Resume', sidebarWidth - 30);
-        nameLines.forEach((line: string) => {
-          doc.text(line, 15, sidebarY);
-          sidebarY += 16;
-        });
-        sidebarY += 10;
-      }
-      
-      // Contact section in sidebar
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('CONTACT', 15, sidebarY);
-      sidebarY += 14;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      if (parsed.email) { doc.text(parsed.email, 15, sidebarY); sidebarY += 12; }
-      if (parsed.phone) { doc.text(parsed.phone, 15, sidebarY); sidebarY += 12; }
-      if (parsed.linkedin) { doc.text(parsed.linkedin, 15, sidebarY); sidebarY += 12; }
-      sidebarY += 10;
-      
-      // Skills section in sidebar
-      if (parsed.skills && parsed.skills.length > 0) {
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('SKILLS', 15, sidebarY);
-        sidebarY += 14;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        parsed.skills.slice(0, 12).forEach(skill => {
-          const skillLines = doc.splitTextToSize(`• ${skill}`, sidebarWidth - 30);
-          skillLines.forEach((line: string) => {
-            doc.text(line, 15, sidebarY);
-            sidebarY += 11;
-          });
-        });
-      }
-      
-      // Main content area starts to the right
-      y = margin;
-      break;
-      
-    case 'royal-rightrail':
-      // Royal Right-Rail - Light blue right sidebar (1/3 width)
-      const rightSidebarWidth = pageWidth / 3;
-      const mainContentWidth = pageWidth - rightSidebarWidth;
-      
-      // Light blue right sidebar
-      doc.setFillColor('#EFF6FF');
-      doc.rect(mainContentWidth, 0, rightSidebarWidth, pageHeight, 'F');
-      
-      // Blue vertical line separator
-      doc.setDrawColor('#2563EB');
-      doc.setLineWidth(2);
-      doc.line(mainContentWidth, 0, mainContentWidth, pageHeight);
-      
-      // Main header (left side)
-      if (parsed.name || contactName) {
-        addText(parsed.name || contactName || 'Resume', margin, mainContentWidth - margin * 2, { 
-          fontSize: 22, 
-          bold: true,
-          color: '#0F172A'
-        });
-        y += 4;
-      }
-      
-      // Right sidebar content
-      let rightY = 40;
-      const rightX = mainContentWidth + 15;
-      
-      // Contact section in right sidebar
-      doc.setTextColor('#0F172A');
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('CONTACT', rightX, rightY);
-      rightY += 14;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor('#64748B');
-      if (parsed.email) { doc.text(parsed.email, rightX, rightY); rightY += 12; }
-      if (parsed.phone) { doc.text(parsed.phone, rightX, rightY); rightY += 12; }
-      if (parsed.linkedin) { 
-        const linkedinLines = doc.splitTextToSize(parsed.linkedin, rightSidebarWidth - 30);
-        linkedinLines.forEach((line: string) => {
-          doc.text(line, rightX, rightY);
-          rightY += 11;
-        });
-      }
-      rightY += 15;
-      
-      // Skills section in right sidebar
-      if (parsed.skills && parsed.skills.length > 0) {
-        doc.setTextColor('#0F172A');
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('SKILLS', rightX, rightY);
-        rightY += 14;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor('#64748B');
-        parsed.skills.slice(0, 12).forEach(skill => {
-          const skillLines = doc.splitTextToSize(`• ${skill}`, rightSidebarWidth - 30);
-          skillLines.forEach((line: string) => {
-            doc.text(line, rightX, rightY);
-            rightY += 11;
-          });
-        });
-      }
-      
-      y += 16;
-      break;
   }
   
   // Parse resume into ordered sections
@@ -650,10 +526,8 @@ function getTemplateColors(templateId: TemplateId) {
     case 'executive': return colorSchemes.blue;
     case 'tech': return colorSchemes.gray;
     case 'corporate-navy':
-    case 'sapphire-sidebar':
       return colorSchemes.navy;
     case 'azure-minimal':
-    case 'royal-rightrail':
       return { primary: '#2563EB', secondary: '#0F172A', accent: '#EFF6FF', text: '#0F172A', muted: '#64748B' };
     default: return colorSchemes.teal;
   }

@@ -50,10 +50,8 @@ function getTemplateColors(templateId: TemplateId) {
     case 'executive': return colorSchemes.blue;
     case 'tech': return colorSchemes.gray;
     case 'corporate-navy':
-    case 'sapphire-sidebar':
       return { primary: '#0F172A', secondary: '#2563EB', accent: '#3B82F6', text: '#0F172A', muted: '#64748B' };
     case 'azure-minimal':
-    case 'royal-rightrail':
       return { primary: '#2563EB', secondary: '#0F172A', accent: '#EFF6FF', text: '#0F172A', muted: '#64748B' };
     default: return colorSchemes.teal;
   }
@@ -152,88 +150,6 @@ function ResumePreview({ resumeText, templateId }: { resumeText: string; templat
       );
     });
   };
-
-  // Sidebar-left layout (Sapphire)
-  if (templateId === 'sapphire-sidebar') {
-    return (
-      <div 
-        className="bg-white text-black min-h-[600px] shadow-lg grid grid-cols-3"
-        style={{ fontFamily: template?.fontFamily.body || 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.4' }}
-      >
-        {/* Navy left sidebar */}
-        <div className="col-span-1 p-4" style={{ background: '#0F172A', color: 'white' }}>
-          <h1 className="text-lg font-bold mb-4 leading-tight">{parsed.name || 'Your Name'}</h1>
-          
-          <div className="mb-4">
-            <h3 className="text-xs font-bold uppercase tracking-wide mb-2 opacity-80">Contact</h3>
-            <div className="text-xs space-y-1 opacity-90">
-              {parsed.email && <div>{parsed.email}</div>}
-              {parsed.phone && <div>{parsed.phone}</div>}
-              {parsed.linkedin && <div className="break-all">{parsed.linkedin}</div>}
-            </div>
-          </div>
-          
-          {parsed.skills && parsed.skills.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-xs font-bold uppercase tracking-wide mb-2 opacity-80">Skills</h3>
-              <div className="text-xs space-y-1 opacity-90">
-                {parsed.skills.slice(0, 12).map((skill, idx) => (
-                  <div key={idx}>• {skill}</div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-        
-        {/* Main content - ordered sections */}
-        <div className="col-span-2 p-6">
-          {renderOrderedSections(true)}
-        </div>
-      </div>
-    );
-  }
-
-  // Sidebar-right layout (Royal Right-Rail)
-  if (templateId === 'royal-rightrail') {
-    return (
-      <div 
-        className="bg-white text-black min-h-[600px] shadow-lg grid grid-cols-3"
-        style={{ fontFamily: template?.fontFamily.body || 'Arial, sans-serif', fontSize: '11px', lineHeight: '1.4' }}
-      >
-        {/* Main content - ordered sections */}
-        <div className="col-span-2 p-6 border-r-2" style={{ borderColor: '#2563EB' }}>
-          <h1 className="text-2xl font-bold mb-2" style={{ color: '#0F172A' }}>
-            {parsed.name || 'Your Name'}
-          </h1>
-          
-          {renderOrderedSections(true)}
-        </div>
-        
-        {/* Light blue right sidebar */}
-        <div className="col-span-1 p-4" style={{ background: '#EFF6FF' }}>
-          <div className="mb-4">
-            <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#0F172A' }}>Contact</h3>
-            <div className="text-xs space-y-1" style={{ color: '#64748B' }}>
-              {parsed.email && <div>{parsed.email}</div>}
-              {parsed.phone && <div>{parsed.phone}</div>}
-              {parsed.linkedin && <div className="break-all">{parsed.linkedin}</div>}
-            </div>
-          </div>
-          
-          {parsed.skills && parsed.skills.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: '#0F172A' }}>Skills</h3>
-              <div className="text-xs space-y-1" style={{ color: '#64748B' }}>
-                {parsed.skills.slice(0, 12).map((skill, idx) => (
-                  <div key={idx}>• {skill}</div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   // Single column layouts
   const getHeaderStyle = () => {
