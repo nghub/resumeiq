@@ -1,4 +1,4 @@
-export type TemplateId = 'classic' | 'modern' | 'executive' | 'tech' | 'corporate-navy' | 'azure-minimal' | 'sapphire-sidebar' | 'royal-rightrail';
+export type TemplateId = 'classic' | 'modern' | 'executive' | 'tech' | 'corporate-navy' | 'azure-minimal';
 
 export interface ResumeTemplate {
   id: TemplateId;
@@ -134,44 +134,6 @@ export const resumeTemplates: ResumeTemplate[] = [
     },
     spacing: 'comfortable',
     layout: 'single-column',
-  },
-  {
-    id: 'sapphire-sidebar',
-    name: 'Sapphire Sidebar',
-    description: 'Navy left sidebar with contact, skills & education',
-    previewImage: 'sapphire-sidebar',
-    fontFamily: {
-      name: 'Arial',
-      body: 'Arial, sans-serif',
-    },
-    colors: {
-      primary: '#0F172A',
-      secondary: '#2563EB',
-      accent: '#3B82F6',
-      text: '#0F172A',
-      muted: '#64748B',
-    },
-    spacing: 'compact',
-    layout: 'sidebar-left',
-  },
-  {
-    id: 'royal-rightrail',
-    name: 'Royal Right-Rail',
-    description: 'Light blue right sidebar with contact, skills & education',
-    previewImage: 'royal-rightrail',
-    fontFamily: {
-      name: 'Arial',
-      body: 'Arial, sans-serif',
-    },
-    colors: {
-      primary: '#2563EB',
-      secondary: '#0F172A',
-      accent: '#EFF6FF',
-      text: '#0F172A',
-      muted: '#64748B',
-    },
-    spacing: 'compact',
-    layout: 'sidebar-right',
   },
 ];
 
