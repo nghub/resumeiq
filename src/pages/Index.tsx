@@ -36,14 +36,6 @@ export default function Index() {
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/20 rounded-full blur-3xl" />
         </div>
         
-        <nav className="relative z-10 container flex items-center justify-center py-6">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <FileText className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-2xl font-bold text-background">ResumeAI</span>
-          </div>
-        </nav>
 
         <div className="relative z-10 container py-24 md:py-32">
           <motion.div className="max-w-3xl mx-auto text-center" initial={{
