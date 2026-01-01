@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { FileText, History, Moon, Sun, Snowflake, TreePine, LogOut, User, Zap, Briefcase } from 'lucide-react';
+import { FileText, History, Moon, Sun, Snowflake, TreePine, LogOut, User, Zap, Briefcase, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsAdmin } from '@/hooks/useAppSettings';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,7 @@ interface HeaderProps {
 export function Header({ onSnowToggle, isSnowing }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { user, signInWithGoogle, signOut, loading } = useAuth();
+  const { isAdmin } = useIsAdmin();
 
   const getThemeIcon = () => {
     if (theme === 'christmas') return <TreePine className="h-4 w-4 text-green-600" />;
@@ -117,6 +119,14 @@ export function Header({ onSnowToggle, isSnowing }: HeaderProps) {
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin-settings">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Admin Settings
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={signOut}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign out
