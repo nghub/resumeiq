@@ -8,14 +8,27 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Snowfall } from "@/components/Snowfall";
 import { Header } from "@/components/Header";
+import { useAppSettings } from "@/hooks/useAppSettings";
 import Index from "./pages/Index";
+import IndexV2 from "./pages/IndexV2";
 import Dashboard from "./pages/Dashboard";
 import History from "./pages/History";
 import JobAutomation from "./pages/JobAutomation";
 import JobDrafts from "./pages/JobDrafts";
+import AdminSettings from "./pages/AdminSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function LandingPage() {
+  const { settings, loading } = useAppSettings();
+  
+  if (loading) {
+    return null;
+  }
+  
+  return settings.landingPageVersion === "v2" ? <IndexV2 /> : <Index />;
+}
 
 const App = () => {
   const [isSnowing, setIsSnowing] = useState(false);
@@ -31,11 +44,12 @@ const App = () => {
             <BrowserRouter>
               <Header onSnowToggle={() => setIsSnowing(!isSnowing)} isSnowing={isSnowing} />
               <Routes>
-                <Route path="/" element={<Index />} />
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/history" element={<History />} />
                 <Route path="/job-automation" element={<JobAutomation />} />
                 <Route path="/job-drafts" element={<JobDrafts />} />
+                <Route path="/admin-settings" element={<AdminSettings />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
