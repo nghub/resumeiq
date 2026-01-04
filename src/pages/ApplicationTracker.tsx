@@ -17,7 +17,8 @@ import {
   GripVertical,
   Building2,
   FileCheck,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +34,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -97,6 +108,8 @@ export default function ApplicationTracker() {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
+  const [jobToDelete, setJobToDelete] = useState<JobApplication | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [draggedJob, setDraggedJob] = useState<JobApplication | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<ColumnId | null>(null);
   const [newJob, setNewJob] = useState({
@@ -276,6 +289,39 @@ export default function ApplicationTracker() {
     setSelectedJob(job);
   };
 
+  const handleDeleteClick = (e: React.MouseEvent, job: JobApplication) => {
+    e.stopPropagation();
+    setJobToDelete(job);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!jobToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("job_drafts")
+        .delete()
+        .eq("id", jobToDelete.id);
+
+      if (error) throw error;
+
+      setJobs((prevJobs) => prevJobs.filter((job) => job.id !== jobToDelete.id));
+      toast.success("Job deleted successfully");
+      
+      // Close detail modal if deleting the currently viewed job
+      if (selectedJob?.id === jobToDelete.id) {
+        setSelectedJob(null);
+      }
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      toast.error("Failed to delete job");
+    } finally {
+      setIsDeleting(false);
+      setJobToDelete(null);
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -372,6 +418,7 @@ export default function ApplicationTracker() {
                           onDragStart={handleDragStart}
                           onDragEnd={handleDragEnd}
                           onClick={handleCardClick}
+                          onDelete={handleDeleteClick}
                           isDragging={draggedJob?.id === job.id}
                         />
                       ))}
@@ -587,7 +634,17 @@ export default function ApplicationTracker() {
                 </div>
               </div>
 
-              <DialogFooter>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setJobToDelete(selectedJob);
+                  }}
+                  className="sm:mr-auto"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
                 <Button variant="outline" onClick={() => setSelectedJob(null)}>
                   Close
                 </Button>
@@ -604,6 +661,35 @@ export default function ApplicationTracker() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!jobToDelete} onOpenChange={() => setJobToDelete(null)}>
+        <AlertDialogContent className="bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Job Application</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{jobToDelete?.title}" at {jobToDelete?.company}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -614,10 +700,11 @@ interface JobCardProps {
   onDragStart: (job: JobApplication) => void;
   onDragEnd: () => void;
   onClick: (job: JobApplication) => void;
+  onDelete: (e: React.MouseEvent, job: JobApplication) => void;
   isDragging: boolean;
 }
 
-function JobCard({ job, onDragStart, onDragEnd, onClick, isDragging }: JobCardProps) {
+function JobCard({ job, onDragStart, onDragEnd, onClick, onDelete, isDragging }: JobCardProps) {
   const getMatchScoreColor = (score: number) => {
     if (score >= 90) return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300";
     if (score >= 80) return "bg-primary/10 text-primary";
@@ -637,7 +724,7 @@ function JobCard({ job, onDragStart, onDragEnd, onClick, isDragging }: JobCardPr
       )}
     >
       <CardContent className="p-4 space-y-3">
-        {/* Drag Handle */}
+        {/* Header with Drag Handle and Delete */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <GripVertical className="h-4 w-4 text-muted-foreground/50 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -646,9 +733,18 @@ function JobCard({ job, onDragStart, onDragEnd, onClick, isDragging }: JobCardPr
               <p className="text-sm text-muted-foreground">{job.company}</p>
             </div>
           </div>
-          <Badge className={cn("shrink-0 text-xs font-medium", getMatchScoreColor(job.matchScore))}>
-            {job.matchScore}% Match
-          </Badge>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={(e) => onDelete(e, job)}
+              className="p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              title="Delete job"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+            <Badge className={cn("text-xs font-medium", getMatchScoreColor(job.matchScore))}>
+              {job.matchScore}% Match
+            </Badge>
+          </div>
         </div>
 
         {/* Location */}
