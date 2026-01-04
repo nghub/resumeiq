@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { 
   FileText, 
   Sparkles, 
@@ -15,6 +16,26 @@ import {
   Award
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+import sampleResult1 from "@/assets/sample-result-1.png";
+import sampleResult2 from "@/assets/sample-result-2.png";
+import sampleResult3 from "@/assets/sample-result-3.png";
+import sampleResult4 from "@/assets/sample-result-4.png";
+import sampleResult5 from "@/assets/sample-result-5.png";
+
+const sampleImages = [
+  sampleResult1,
+  sampleResult2,
+  sampleResult3,
+  sampleResult4,
+  sampleResult5,
+];
 
 const stats = [
   { value: "95%+", label: "Success Rate" },
@@ -63,8 +84,30 @@ const scoreBreakdown = [
 ];
 
 export default function IndexV2() {
+  const [showSampleModal, setShowSampleModal] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Sample Results Modal */}
+      <Dialog open={showSampleModal} onOpenChange={setShowSampleModal}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center">
+              Sample Before & After Results
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {sampleImages.map((img, index) => (
+              <img
+                key={index}
+                src={img}
+                alt={`Sample result ${index + 1}`}
+                className="w-full h-auto rounded-lg border border-border shadow-sm"
+              />
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Hero Section */}
       <section className="relative pt-20 pb-32 overflow-hidden">
         {/* Background Effects */}
@@ -114,11 +157,14 @@ export default function IndexV2() {
                   Start Free Analysis
                 </Button>
               </Link>
-              <Link to="/dashboard">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto text-lg px-8 py-6">
-                  View Sample Results
-                </Button>
-              </Link>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="w-full sm:w-auto text-lg px-8 py-6"
+                onClick={() => setShowSampleModal(true)}
+              >
+                View Sample Results
+              </Button>
             </div>
 
             {/* Stats */}
