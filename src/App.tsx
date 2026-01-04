@@ -16,6 +16,7 @@ import History from "./pages/History";
 import JobAutomation from "./pages/JobAutomation";
 import JobDrafts from "./pages/JobDrafts";
 import AdminSettings from "./pages/AdminSettings";
+import ApplicationTracker from "./pages/ApplicationTracker";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const App = () => {
                 <Route path="/job-automation" element={<JobAutomation />} />
                 <Route path="/job-drafts" element={<JobDrafts />} />
                 <Route path="/admin-settings" element={<AdminSettings />} />
+                <Route path="/app-tracker" element={<ApplicationTracker />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
