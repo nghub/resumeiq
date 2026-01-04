@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -13,8 +13,11 @@ import {
   MessageSquare,
   Gift,
   XCircle,
-  X,
-  ExternalLink
+  ExternalLink,
+  GripVertical,
+  Building2,
+  FileCheck,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +41,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 // Types
 interface JobApplication {
@@ -61,50 +68,6 @@ interface Column {
   bgColor: string;
 }
 
-// Mock Data
-const initialJobs: JobApplication[] = [
-  {
-    id: "1",
-    title: "Senior Product Manager",
-    company: "Spotify",
-    location: "New York, NY",
-    dateAdded: "Dec 28, 2025",
-    matchScore: 92,
-    resumeVersion: "PM_v3.pdf",
-    status: "bookmarked",
-  },
-  {
-    id: "2",
-    title: "Frontend Developer",
-    company: "Vercel",
-    location: "Remote",
-    dateAdded: "Dec 30, 2025",
-    matchScore: 88,
-    resumeVersion: "Dev_v2.pdf",
-    status: "applied",
-  },
-  {
-    id: "3",
-    title: "UX Designer",
-    company: "Figma",
-    location: "San Francisco, CA",
-    dateAdded: "Jan 2, 2026",
-    matchScore: 85,
-    resumeVersion: "Design_v1.pdf",
-    status: "interviewing",
-  },
-  {
-    id: "4",
-    title: "Software Engineer",
-    company: "Stripe",
-    location: "Seattle, WA",
-    dateAdded: "Jan 3, 2026",
-    matchScore: 78,
-    resumeVersion: "Dev_v2.pdf",
-    status: "bookmarked",
-  },
-];
-
 const columns: Column[] = [
   { id: "bookmarked", title: "Bookmarked", icon: <Bookmark className="h-4 w-4" />, bgColor: "bg-amber-50 dark:bg-amber-950/30" },
   { id: "applied", title: "Applied", icon: <Send className="h-4 w-4" />, bgColor: "bg-blue-50 dark:bg-blue-950/30" },
@@ -128,9 +91,14 @@ const resumeVersions = [
 ];
 
 export default function ApplicationTracker() {
-  const location = useLocation();
-  const [jobs, setJobs] = useState<JobApplication[]>(initialJobs);
+  const loc = useLocation();
+  const { user } = useAuth();
+  const [jobs, setJobs] = useState<JobApplication[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<JobApplication | null>(null);
+  const [draggedJob, setDraggedJob] = useState<JobApplication | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<ColumnId | null>(null);
   const [newJob, setNewJob] = useState({
     jobUrl: "",
     title: "",
@@ -141,36 +109,185 @@ export default function ApplicationTracker() {
     status: "bookmarked" as ColumnId,
   });
 
+  // Fetch jobs from database
+  const fetchJobs = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from("job_drafts")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const mappedJobs: JobApplication[] = (data || []).map((job) => ({
+        id: job.id,
+        title: job.job_title,
+        company: job.company_name || "Unknown Company",
+        location: job.location || "Remote",
+        dateAdded: new Date(job.created_at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        matchScore: job.ats_score || 0,
+        resumeVersion: job.original_resume || "General_v1.pdf",
+        status: job.status,
+        jobUrl: job.job_url || undefined,
+        description: job.job_description,
+      }));
+
+      setJobs(mappedJobs);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+      toast.error("Failed to load jobs");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
+
   const getJobsByStatus = (status: string) => jobs.filter((job) => job.status === status);
 
-  const handleAddJob = () => {
-    if (!newJob.title || !newJob.company) return;
-    
-    const job: JobApplication = {
-      id: Date.now().toString(),
-      title: newJob.title,
-      company: newJob.company,
-      location: newJob.location || "Remote",
-      dateAdded: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      matchScore: Math.floor(Math.random() * 30) + 70,
-      resumeVersion: newJob.resumeVersion || "General_v1.pdf",
-      status: newJob.status,
-      jobUrl: newJob.jobUrl,
-      description: newJob.description,
-    };
-    
-    setJobs([...jobs, job]);
-    setNewJob({
-      jobUrl: "",
-      title: "",
-      company: "",
-      location: "",
-      description: "",
-      resumeVersion: "",
-      status: "bookmarked",
-    });
-    setIsModalOpen(false);
+  const handleAddJob = async () => {
+    if (!newJob.title || !newJob.company || !user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("job_drafts")
+        .insert({
+          user_id: user.id,
+          job_title: newJob.title,
+          company_name: newJob.company,
+          location: newJob.location || "Remote",
+          job_description: newJob.description,
+          job_url: newJob.jobUrl || null,
+          original_resume: newJob.resumeVersion || "General_v1.pdf",
+          status: newJob.status,
+          ats_score: Math.floor(Math.random() * 30) + 70,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newJobData: JobApplication = {
+        id: data.id,
+        title: data.job_title,
+        company: data.company_name || "Unknown Company",
+        location: data.location || "Remote",
+        dateAdded: new Date(data.created_at).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        matchScore: data.ats_score || 0,
+        resumeVersion: data.original_resume || "General_v1.pdf",
+        status: data.status,
+        jobUrl: data.job_url || undefined,
+        description: data.job_description,
+      };
+
+      setJobs([newJobData, ...jobs]);
+      setNewJob({
+        jobUrl: "",
+        title: "",
+        company: "",
+        location: "",
+        description: "",
+        resumeVersion: "",
+        status: "bookmarked",
+      });
+      setIsModalOpen(false);
+      toast.success("Job added successfully");
+    } catch (error) {
+      console.error("Error adding job:", error);
+      toast.error("Failed to add job");
+    }
   };
+
+  // Drag and Drop handlers
+  const handleDragStart = (job: JobApplication) => {
+    setDraggedJob(job);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedJob(null);
+    setDragOverColumn(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, columnId: ColumnId) => {
+    e.preventDefault();
+    setDragOverColumn(columnId);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverColumn(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, columnId: ColumnId) => {
+    e.preventDefault();
+    setDragOverColumn(null);
+
+    if (!draggedJob || draggedJob.status === columnId) {
+      setDraggedJob(null);
+      return;
+    }
+
+    // Optimistic update
+    setJobs((prevJobs) =>
+      prevJobs.map((job) =>
+        job.id === draggedJob.id ? { ...job, status: columnId } : job
+      )
+    );
+
+    try {
+      const { error } = await supabase
+        .from("job_drafts")
+        .update({ status: columnId })
+        .eq("id", draggedJob.id);
+
+      if (error) throw error;
+
+      toast.success(`Moved to ${columns.find((c) => c.id === columnId)?.title}`);
+    } catch (error) {
+      console.error("Error updating job status:", error);
+      // Revert on error
+      setJobs((prevJobs) =>
+        prevJobs.map((job) =>
+          job.id === draggedJob.id ? { ...job, status: draggedJob.status } : job
+        )
+      );
+      toast.error("Failed to update job status");
+    }
+
+    setDraggedJob(null);
+  };
+
+  const handleCardClick = (job: JobApplication) => {
+    setSelectedJob(job);
+  };
+
+  if (!user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center space-y-4">
+          <h2 className="text-xl font-semibold text-foreground">Sign in to track your applications</h2>
+          <Button asChild>
+            <Link to="/">Go to Home</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -181,7 +298,7 @@ export default function ApplicationTracker() {
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.href;
+            const isActive = loc.pathname === item.href;
             return (
               <Link
                 key={item.href}
@@ -214,43 +331,64 @@ export default function ApplicationTracker() {
 
         {/* Kanban Board */}
         <main className="flex-1 overflow-x-auto p-6">
-          <div className="flex gap-4 min-w-max pb-4">
-            {columns.map((column) => {
-              const columnJobs = getJobsByStatus(column.id);
-              return (
-                <div
-                  key={column.id}
-                  className={cn(
-                    "flex flex-col w-80 rounded-xl border border-border/50",
-                    column.bgColor
-                  )}
-                >
-                  {/* Column Header */}
-                  <div className="flex items-center justify-between p-4 border-b border-border/30">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">{column.icon}</span>
-                      <h3 className="font-medium text-foreground">{column.title}</h3>
-                    </div>
-                    <Badge variant="secondary" className="text-xs font-medium">
-                      {columnJobs.length}
-                    </Badge>
-                  </div>
-
-                  {/* Column Content */}
-                  <div className="flex-1 p-3 space-y-3 min-h-[400px]">
-                    {columnJobs.map((job) => (
-                      <JobCard key={job.id} job={job} />
-                    ))}
-                    {columnJobs.length === 0 && (
-                      <div className="flex items-center justify-center h-24 text-sm text-muted-foreground border-2 border-dashed border-border/50 rounded-lg">
-                        Drop jobs here
-                      </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="flex gap-4 min-w-max pb-4">
+              {columns.map((column) => {
+                const columnJobs = getJobsByStatus(column.id);
+                const isOver = dragOverColumn === column.id;
+                return (
+                  <div
+                    key={column.id}
+                    className={cn(
+                      "flex flex-col w-80 rounded-xl border transition-all duration-200",
+                      column.bgColor,
+                      isOver ? "border-primary border-2 scale-[1.02]" : "border-border/50"
                     )}
+                    onDragOver={(e) => handleDragOver(e, column.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, column.id)}
+                  >
+                    {/* Column Header */}
+                    <div className="flex items-center justify-between p-4 border-b border-border/30">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">{column.icon}</span>
+                        <h3 className="font-medium text-foreground">{column.title}</h3>
+                      </div>
+                      <Badge variant="secondary" className="text-xs font-medium">
+                        {columnJobs.length}
+                      </Badge>
+                    </div>
+
+                    {/* Column Content */}
+                    <div className="flex-1 p-3 space-y-3 min-h-[400px]">
+                      {columnJobs.map((job) => (
+                        <JobCard
+                          key={job.id}
+                          job={job}
+                          onDragStart={handleDragStart}
+                          onDragEnd={handleDragEnd}
+                          onClick={handleCardClick}
+                          isDragging={draggedJob?.id === job.id}
+                        />
+                      ))}
+                      {columnJobs.length === 0 && (
+                        <div className={cn(
+                          "flex items-center justify-center h-24 text-sm text-muted-foreground border-2 border-dashed rounded-lg transition-colors",
+                          isOver ? "border-primary bg-primary/5" : "border-border/50"
+                        )}>
+                          Drop jobs here
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </main>
       </div>
 
@@ -368,12 +506,118 @@ export default function ApplicationTracker() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Job Detail Modal */}
+      <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
+        <DialogContent className="sm:max-w-2xl bg-card max-h-[85vh]">
+          {selectedJob && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <DialogTitle className="text-xl font-semibold">{selectedJob.title}</DialogTitle>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Building2 className="h-4 w-4" />
+                      <span>{selectedJob.company}</span>
+                    </div>
+                  </div>
+                  <Badge className={cn(
+                    "shrink-0 text-sm font-medium",
+                    selectedJob.matchScore >= 90 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300" :
+                    selectedJob.matchScore >= 80 ? "bg-primary/10 text-primary" :
+                    selectedJob.matchScore >= 70 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300" :
+                    "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400"
+                  )}>
+                    {selectedJob.matchScore}% Match
+                  </Badge>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                {/* Meta Info */}
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span>{selectedJob.location}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>Added {selectedJob.dateAdded}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <FileCheck className="h-4 w-4" />
+                    <span>{selectedJob.resumeVersion}</span>
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">Status:</span>
+                  <Badge variant="secondary" className="capitalize">
+                    {columns.find(c => c.id === selectedJob.status)?.title || selectedJob.status}
+                  </Badge>
+                </div>
+
+                {/* Job URL */}
+                {selectedJob.jobUrl && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Job URL</Label>
+                    <a
+                      href={selectedJob.jobUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-primary hover:underline text-sm"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      {selectedJob.jobUrl}
+                    </a>
+                  </div>
+                )}
+
+                {/* Job Description */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Job Description</Label>
+                  <ScrollArea className="h-[250px] rounded-lg border border-border bg-muted/30 p-4">
+                    {selectedJob.description ? (
+                      <p className="text-sm text-foreground whitespace-pre-wrap">{selectedJob.description}</p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No job description available</p>
+                    )}
+                  </ScrollArea>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSelectedJob(null)}>
+                  Close
+                </Button>
+                {selectedJob.jobUrl && (
+                  <Button asChild>
+                    <a href={selectedJob.jobUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      View Job Posting
+                    </a>
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 // Job Card Component
-function JobCard({ job }: { job: JobApplication }) {
+interface JobCardProps {
+  job: JobApplication;
+  onDragStart: (job: JobApplication) => void;
+  onDragEnd: () => void;
+  onClick: (job: JobApplication) => void;
+  isDragging: boolean;
+}
+
+function JobCard({ job, onDragStart, onDragEnd, onClick, isDragging }: JobCardProps) {
   const getMatchScoreColor = (score: number) => {
     if (score >= 90) return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300";
     if (score >= 80) return "bg-primary/10 text-primary";
@@ -382,13 +626,25 @@ function JobCard({ job }: { job: JobApplication }) {
   };
 
   return (
-    <Card className="group cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 bg-card border-border/50">
+    <Card
+      draggable
+      onDragStart={() => onDragStart(job)}
+      onDragEnd={onDragEnd}
+      onClick={() => onClick(job)}
+      className={cn(
+        "group cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 bg-card border-border/50",
+        isDragging && "opacity-50 scale-95 rotate-2"
+      )}
+    >
       <CardContent className="p-4 space-y-3">
-        {/* Header */}
+        {/* Drag Handle */}
         <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            <h4 className="font-semibold text-foreground truncate">{job.title}</h4>
-            <p className="text-sm text-muted-foreground">{job.company}</p>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <GripVertical className="h-4 w-4 text-muted-foreground/50 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold text-foreground truncate">{job.title}</h4>
+              <p className="text-sm text-muted-foreground">{job.company}</p>
+            </div>
           </div>
           <Badge className={cn("shrink-0 text-xs font-medium", getMatchScoreColor(job.matchScore))}>
             {job.matchScore}% Match
