@@ -157,14 +157,6 @@ export default function IndexV2() {
                   Start Free Analysis
                 </Button>
               </Link>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="w-full sm:w-auto text-lg px-8 py-6"
-                onClick={() => setShowSampleModal(true)}
-              >
-                View Sample Results
-              </Button>
             </div>
 
             {/* Stats */}
