@@ -111,9 +111,12 @@ export default function IndexV2() {
             </h1>
 
             {/* Subtitle */}
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
               Upload your resume, paste a job description, and get instant, role-specific 
               optimization that improves your chances of landing interviews.
+            </p>
+            <p className="text-sm text-muted-foreground/80 max-w-xl mx-auto mb-10">
+              Most resumes are rejected because they don't match the job — not because the candidate isn't qualified.
             </p>
 
             {/* CTAs */}
@@ -281,6 +284,10 @@ export default function IndexV2() {
                     </div>)}
                 </div>
 
+                <div className="mt-4 text-sm text-muted-foreground">
+                  Missing keywords and skills required by this job are highlighted below.
+                </div>
+
                 <div className="mt-6 pt-6 border-t border-border flex items-center gap-2 text-sm text-muted-foreground">
                   <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                   <span>Strong match for this role. Minor improvements suggested.</span>
@@ -288,9 +295,12 @@ export default function IndexV2() {
               </div>
               
               {/* Caption below score card */}
-              <div className="text-center mt-4">
-                <span className="text-xs text-muted-foreground">
+              <div className="text-center mt-4 space-y-1">
+                <span className="text-xs text-muted-foreground block">
                   Scores vary by role. Always optimize per job for best results.
+                </span>
+                <span className="text-xs text-muted-foreground/80 block">
+                  Most resumes fail ATS screening due to missing role-specific keywords.
                 </span>
               </div>
             </motion.div>
