@@ -1,96 +1,63 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { 
-  FileText, 
-  Sparkles, 
-  Target, 
-  Clock, 
-  CheckCircle2, 
-  Star,
-  Shield,
-  Zap,
-  Upload,
-  ClipboardList,
-  BarChart3,
-  Wand2,
-  Users
-} from "lucide-react";
+import { FileText, Sparkles, Target, Clock, CheckCircle2, Star, Shield, Zap, Upload, ClipboardList, BarChart3, Wand2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import sampleResult1 from "@/assets/sample-result-1.png";
 import sampleResult2 from "@/assets/sample-result-2.png";
 import sampleResult3 from "@/assets/sample-result-3.png";
 import sampleResult4 from "@/assets/sample-result-4.png";
 import sampleResult5 from "@/assets/sample-result-5.png";
-
-const sampleImages = [
-  sampleResult1,
-  sampleResult2,
-  sampleResult3,
-  sampleResult4,
-  sampleResult5,
-];
-
-const stats = [
-  { value: "10K+", label: "Resumes Analyzed" },
-  { value: "<60s", label: "Analysis Time" },
-  { value: "4.9/5", label: "User Rating" },
-];
-
-const steps = [
-  {
-    icon: Upload,
-    step: "Step 1",
-    title: "Upload your resume",
-    description: "Drop your PDF or DOCX file to get started."
-  },
-  {
-    icon: ClipboardList,
-    step: "Step 2",
-    title: "Paste the job description you are applying for",
-    description: "Copy the job posting you want to target."
-  },
-  {
-    icon: BarChart3,
-    step: "Step 3",
-    title: "Get ATS and recruiter relevance score for that role",
-    description: "See how well your resume matches the specific job."
-  },
-  {
-    icon: Wand2,
-    step: "Step 4",
-    title: "Fix gaps instantly with AI suggestions",
-    description: "Apply role-specific improvements with one click."
-  }
-];
-
-const benefits = [
-  "Resume score matched to the job description",
-  "Missing keywords and skills highlighted",
-  "ATS-safe formatting checks",
-  "Role-specific improvement suggestions",
-  "Achievement and impact quantification"
-];
-
-const scoreBreakdown = [
-  { label: "Keyword Match", score: 95 },
-  { label: "Format & Structure", score: 88 },
-  { label: "Content Quality", score: 90 },
-  { label: "ATS Readability", score: 94 },
-];
-
+const sampleImages = [sampleResult1, sampleResult2, sampleResult3, sampleResult4, sampleResult5];
+const stats = [{
+  value: "10K+",
+  label: "Resumes Analyzed"
+}, {
+  value: "<60s",
+  label: "Analysis Time"
+}, {
+  value: "4.9/5",
+  label: "User Rating"
+}];
+const steps = [{
+  icon: Upload,
+  step: "Step 1",
+  title: "Upload your resume",
+  description: "Drop your PDF or DOCX file to get started."
+}, {
+  icon: ClipboardList,
+  step: "Step 2",
+  title: "Paste the job description you are applying for",
+  description: "Copy the job posting you want to target."
+}, {
+  icon: BarChart3,
+  step: "Step 3",
+  title: "Get ATS and recruiter relevance score for that role",
+  description: "See how well your resume matches the specific job."
+}, {
+  icon: Wand2,
+  step: "Step 4",
+  title: "Fix gaps instantly with AI suggestions",
+  description: "Apply role-specific improvements with one click."
+}];
+const benefits = ["Resume score matched to the job description", "Missing keywords and skills highlighted", "ATS-safe formatting checks", "Role-specific improvement suggestions", "Achievement and impact quantification"];
+const scoreBreakdown = [{
+  label: "Keyword Match",
+  score: 95
+}, {
+  label: "Format & Structure",
+  score: 88
+}, {
+  label: "Content Quality",
+  score: 90
+}, {
+  label: "ATS Readability",
+  score: 94
+}];
 export default function IndexV2() {
   const [showSampleModal, setShowSampleModal] = useState(false);
-
-  return (
-    <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background">
       {/* Sample Results Modal */}
       <Dialog open={showSampleModal} onOpenChange={setShowSampleModal}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -100,14 +67,7 @@ export default function IndexV2() {
             </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            {sampleImages.map((img, index) => (
-              <img
-                key={index}
-                src={img}
-                alt={`Sample result ${index + 1}`}
-                className="w-full h-auto rounded-lg border border-border shadow-sm"
-              />
-            ))}
+            {sampleImages.map((img, index) => <img key={index} src={img} alt={`Sample result ${index + 1}`} className="w-full h-auto rounded-lg border border-border shadow-sm" />)}
           </div>
         </DialogContent>
       </Dialog>
@@ -121,23 +81,27 @@ export default function IndexV2() {
         </div>
 
         <div className="container relative z-10">
-          <motion.div 
-            className="max-w-4xl mx-auto text-center"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
+          <motion.div className="max-w-4xl mx-auto text-center" initial={{
+          opacity: 0,
+          y: 20
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} transition={{
+          duration: 0.6
+        }}>
             {/* Trust Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8"
-            >
+            <motion.div initial={{
+            opacity: 0,
+            y: -10
+          }} animate={{
+            opacity: 1,
+            y: 0
+          }} transition={{
+            delay: 0.2
+          }} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
               <Users className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">
-                10,000+ Resumes Analyzed Across Real Job Postings
-              </span>
+              <span className="text-sm font-medium text-foreground">Built for serious job seekers applying to competitive roles</span>
             </motion.div>
 
             {/* Main Headline */}
@@ -166,20 +130,21 @@ export default function IndexV2() {
             </div>
 
             {/* Stats */}
-            <motion.div 
-              className="grid grid-cols-3 gap-8 max-w-2xl mx-auto mt-16"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center">
+            <motion.div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto mt-16" initial={{
+            opacity: 0,
+            y: 20
+          }} animate={{
+            opacity: 1,
+            y: 0
+          }} transition={{
+            delay: 0.4
+          }}>
+              {stats.map((stat, index) => <div key={index} className="text-center">
                   <div className="text-3xl md:text-4xl font-bold text-primary mb-1">
                     {stat.value}
                   </div>
                   <div className="text-sm text-muted-foreground">{stat.label}</div>
-                </div>
-              ))}
+                </div>)}
             </motion.div>
           </motion.div>
         </div>
@@ -188,12 +153,15 @@ export default function IndexV2() {
       {/* Core Positioning Section */}
       <section className="py-24 bg-muted/30">
         <div className="container">
-          <motion.div 
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
+          <motion.div className="text-center mb-16" initial={{
+          opacity: 0,
+          y: 20
+        }} whileInView={{
+          opacity: 1,
+          y: 0
+        }} viewport={{
+          once: true
+        }}>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-4">
               <Sparkles className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium">How It Works</span>
@@ -208,23 +176,24 @@ export default function IndexV2() {
           </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {steps.map((step, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="group p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-300"
-              >
+            {steps.map((step, index) => <motion.div key={index} initial={{
+            opacity: 0,
+            y: 20
+          }} whileInView={{
+            opacity: 1,
+            y: 0
+          }} viewport={{
+            once: true
+          }} transition={{
+            delay: index * 0.1
+          }} className="group p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-300">
                 <div className="text-xs font-semibold text-primary mb-3">{step.step}</div>
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                   <step.icon className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
                 <p className="text-sm text-muted-foreground">{step.description}</p>
-              </motion.div>
-            ))}
+              </motion.div>)}
           </div>
         </div>
       </section>
@@ -233,11 +202,15 @@ export default function IndexV2() {
       <section className="py-24">
         <div className="container">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
+            <motion.div initial={{
+            opacity: 0,
+            x: -20
+          }} whileInView={{
+            opacity: 1,
+            x: 0
+          }} viewport={{
+            once: true
+          }}>
               <h2 className="text-3xl md:text-5xl font-bold mb-4">
                 Stop Sending the Same Resume{" "}
                 <span className="text-primary">to Every Job.</span>
@@ -248,22 +221,23 @@ export default function IndexV2() {
               </p>
 
               <div className="space-y-4">
-                {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center gap-3">
+                {benefits.map((benefit, index) => <div key={index} className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
                     <span className="text-foreground">{benefit}</span>
-                  </div>
-                ))}
+                  </div>)}
               </div>
             </motion.div>
 
             {/* Score Preview Card */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="relative"
-            >
+            <motion.div initial={{
+            opacity: 0,
+            x: 20
+          }} whileInView={{
+            opacity: 1,
+            x: 0
+          }} viewport={{
+            once: true
+          }} className="relative">
               {/* Label above score card */}
               <div className="text-center mb-4">
                 <span className="text-sm font-medium text-primary">ATS Score for This Job Posting</span>
@@ -287,23 +261,24 @@ export default function IndexV2() {
                 </div>
 
                 <div className="space-y-4">
-                  {scoreBreakdown.map((item, index) => (
-                    <div key={index}>
+                  {scoreBreakdown.map((item, index) => <div key={index}>
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-foreground">{item.label}</span>
                         <span className="font-medium text-primary">{item.score}%</span>
                       </div>
                       <div className="h-2 rounded-full bg-muted overflow-hidden">
-                        <motion.div
-                          className="h-full bg-primary rounded-full"
-                          initial={{ width: 0 }}
-                          whileInView={{ width: `${item.score}%` }}
-                          viewport={{ once: true }}
-                          transition={{ delay: 0.2 + index * 0.1, duration: 0.8 }}
-                        />
+                        <motion.div className="h-full bg-primary rounded-full" initial={{
+                      width: 0
+                    }} whileInView={{
+                      width: `${item.score}%`
+                    }} viewport={{
+                      once: true
+                    }} transition={{
+                      delay: 0.2 + index * 0.1,
+                      duration: 0.8
+                    }} />
                       </div>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
 
                 <div className="mt-6 pt-6 border-t border-border flex items-center gap-2 text-sm text-muted-foreground">
@@ -326,12 +301,15 @@ export default function IndexV2() {
       {/* Final CTA Section */}
       <section className="py-24 bg-muted/30">
         <div className="container">
-          <motion.div 
-            className="max-w-3xl mx-auto text-center"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
+          <motion.div className="max-w-3xl mx-auto text-center" initial={{
+          opacity: 0,
+          y: 20
+        }} whileInView={{
+          opacity: 1,
+          y: 0
+        }} viewport={{
+          once: true
+        }}>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-4">
               <Clock className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium">Results in Under 60 Seconds</span>
@@ -393,6 +371,5 @@ export default function IndexV2() {
           </div>
         </div>
       </footer>
-    </div>
-  );
+    </div>;
 }
