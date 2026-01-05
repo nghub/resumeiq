@@ -3,12 +3,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { Snowfall } from "@/components/Snowfall";
 import { Header } from "@/components/Header";
-import { useAppSettings } from "@/hooks/useAppSettings";
+import { useAppSettings, useIsOwner } from "@/hooks/useAppSettings";
 import Index from "./pages/Index";
 import IndexV2 from "./pages/IndexV2";
 import Dashboard from "./pages/Dashboard";
@@ -18,6 +18,8 @@ import JobDrafts from "./pages/JobDrafts";
 import AdminSettings from "./pages/AdminSettings";
 import ApplicationTracker from "./pages/ApplicationTracker";
 import NotFound from "./pages/NotFound";
+
+const OWNER_EMAIL = "bhulku2@gmail.com";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +31,35 @@ function LandingPage() {
   }
   
   return settings.landingPageVersion === "v2" ? <IndexV2 /> : <Index />;
+}
+
+function OwnerRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
+  const { isOwner, loading: ownerLoading } = useIsOwner();
+  
+  if (authLoading || ownerLoading) {
+    return null;
+  }
+  
+  if (!user || !isOwner) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
+function AuthRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return null;
+  }
+  
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
 }
 
 const App = () => {
@@ -46,10 +77,10 @@ const App = () => {
               <Header onSnowToggle={() => setIsSnowing(!isSnowing)} isSnowing={isSnowing} />
               <Routes>
                 <Route path="/" element={<LandingPage />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/history" element={<History />} />
-                <Route path="/job-automation" element={<JobAutomation />} />
-                <Route path="/job-drafts" element={<JobDrafts />} />
+                <Route path="/dashboard" element={<OwnerRoute><Dashboard /></OwnerRoute>} />
+                <Route path="/history" element={<AuthRoute><History /></AuthRoute>} />
+                <Route path="/job-automation" element={<OwnerRoute><JobAutomation /></OwnerRoute>} />
+                <Route path="/job-drafts" element={<OwnerRoute><JobDrafts /></OwnerRoute>} />
                 <Route path="/admin-settings" element={<AdminSettings />} />
                 <Route path="/app-tracker" element={<ApplicationTracker />} />
                 <Route path="*" element={<NotFound />} />
