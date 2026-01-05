@@ -10,10 +10,11 @@ import {
   Star,
   Shield,
   Zap,
-  Brain,
-  TrendingUp,
-  Users,
-  Award
+  Upload,
+  ClipboardList,
+  BarChart3,
+  Wand2,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,42 +39,44 @@ const sampleImages = [
 ];
 
 const stats = [
-  { value: "95%+", label: "Success Rate" },
-  { value: "10K+", label: "Resumes Optimized" },
-  { value: "<30s", label: "Analysis Time" },
+  { value: "10K+", label: "Resumes Analyzed" },
+  { value: "<60s", label: "Analysis Time" },
   { value: "4.9/5", label: "User Rating" },
 ];
 
-const features = [
+const steps = [
   {
-    icon: Brain,
-    title: "AI-Powered ATS Analysis",
-    description: "Our advanced AI scans your resume against real ATS systems used by Fortune 500 companies."
+    icon: Upload,
+    step: "Step 1",
+    title: "Upload your resume",
+    description: "Drop your PDF or DOCX file to get started."
   },
   {
-    icon: Target,
-    title: "Smart Feedback Engine",
-    description: "Get actionable, line-by-line suggestions to improve your resume's impact and visibility."
+    icon: ClipboardList,
+    step: "Step 2",
+    title: "Paste the job description you are applying for",
+    description: "Copy the job posting you want to target."
   },
   {
-    icon: Sparkles,
-    title: "Intelligent Rewriting",
-    description: "One-click optimization that rewrites your content while preserving your unique voice."
+    icon: BarChart3,
+    step: "Step 3",
+    title: "Get ATS and recruiter relevance score for that role",
+    description: "See how well your resume matches the specific job."
   },
   {
-    icon: TrendingUp,
-    title: "Skills Gap Analysis",
-    description: "Identify missing keywords and skills that recruiters are actively searching for."
+    icon: Wand2,
+    step: "Step 4",
+    title: "Fix gaps instantly with AI suggestions",
+    description: "Apply role-specific improvements with one click."
   }
 ];
 
 const benefits = [
-  "Instant ATS compatibility score",
-  "Keyword optimization suggestions",
-  "Industry-specific insights",
-  "Formatting improvements",
-  "Experience highlighting",
-  "Achievement quantification"
+  "Resume score matched to the job description",
+  "Missing keywords and skills highlighted",
+  "ATS-safe formatting checks",
+  "Role-specific improvement suggestions",
+  "Achievement and impact quantification"
 ];
 
 const scoreBreakdown = [
@@ -108,6 +111,7 @@ export default function IndexV2() {
           </div>
         </DialogContent>
       </Dialog>
+
       {/* Hero Section */}
       <section className="relative pt-20 pb-32 overflow-hidden">
         {/* Background Effects */}
@@ -132,36 +136,38 @@ export default function IndexV2() {
             >
               <Users className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium text-foreground">
-                Trusted by 10,000+ Job Seekers • AI-Powered Analysis
+                10,000+ Resumes Analyzed Across Real Job Postings
               </span>
             </motion.div>
 
             {/* Main Headline */}
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-              Beat Any{" "}
-              <span className="text-primary">ATS System</span>
-              {" "}With AI Precision
+              Tailor Your Resume to Any Job —{" "}
+              <span className="text-primary">Get More Interviews</span>
             </h1>
 
             {/* Subtitle */}
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-              Upload your resume and get instant, AI-powered feedback. Our advanced analysis 
-              helps you optimize for any job posting and beat applicant tracking systems.
+              Upload your resume, paste a job description, and get instant, role-specific 
+              optimization that improves your chances of landing interviews.
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+            <div className="flex flex-col items-center gap-4 mb-6">
               <Link to="/dashboard">
                 <Button size="lg" className="w-full sm:w-auto text-lg px-8 py-6">
-                  <Zap className="w-5 h-5 mr-2" />
-                  Start Free Analysis
+                  <Target className="w-5 h-5 mr-2" />
+                  Optimize My Resume for a Job
                 </Button>
               </Link>
+              <p className="text-sm text-muted-foreground">
+                Same resume + different jobs = different optimization
+              </p>
             </div>
 
             {/* Stats */}
             <motion.div 
-              className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto"
+              className="grid grid-cols-3 gap-8 max-w-2xl mx-auto mt-16"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
@@ -179,7 +185,7 @@ export default function IndexV2() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Core Positioning Section */}
       <section className="py-24 bg-muted/30">
         <div className="container">
           <motion.div 
@@ -190,18 +196,19 @@ export default function IndexV2() {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-4">
               <Sparkles className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">Cutting-Edge Technology</span>
+              <span className="text-sm font-medium">How It Works</span>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Enterprise-Grade AI Analysis
+              Job-Specific Resume Optimization Engine
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Powered by advanced machine learning models trained on millions of successful resumes
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Our system compares your resume against real job descriptions, identifies keyword gaps, 
+              ATS-breaking issues, and recruiter red flags, then shows exactly what to fix.
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => (
+            {steps.map((step, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
@@ -210,18 +217,19 @@ export default function IndexV2() {
                 transition={{ delay: index * 0.1 }}
                 className="group p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-300"
               >
+                <div className="text-xs font-semibold text-primary mb-3">{step.step}</div>
                 <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <feature.icon className="w-6 h-6 text-primary" />
+                  <step.icon className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
+                <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
+                <p className="text-sm text-muted-foreground">{step.description}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Stop Guessing Section */}
+      {/* Secondary Value Section */}
       <section className="py-24">
         <div className="container">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -230,20 +238,16 @@ export default function IndexV2() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-4">
-                <Award className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium">For Serious Job Seekers</span>
-              </div>
               <h2 className="text-3xl md:text-5xl font-bold mb-4">
-                Stop Guessing.{" "}
-                <span className="text-primary">Start Winning.</span>
+                Stop Sending the Same Resume{" "}
+                <span className="text-primary">to Every Job.</span>
               </h2>
               <p className="text-lg text-muted-foreground mb-8">
-                Every application matters. Our AI ensures your resume passes through 
-                ATS filters and catches the attention of hiring managers.
+                Hiring systems and recruiters look for different keywords in every role. 
+                This tool helps you tailor your resume so it actually matches what each job is asking for.
               </p>
 
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 {benefits.map((benefit, index) => (
                   <div key={index} className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
@@ -260,6 +264,11 @@ export default function IndexV2() {
               viewport={{ once: true }}
               className="relative"
             >
+              {/* Label above score card */}
+              <div className="text-center mb-4">
+                <span className="text-sm font-medium text-primary">ATS Score for This Job Posting</span>
+              </div>
+              
               <div className="p-8 rounded-2xl bg-card border border-border shadow-xl">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
@@ -268,12 +277,12 @@ export default function IndexV2() {
                     </div>
                     <div>
                       <div className="font-semibold">ATS Score Analysis</div>
-                      <div className="text-sm text-muted-foreground">Your resume performance</div>
+                      <div className="text-sm text-muted-foreground">Your resume vs. this job</div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-4xl font-bold text-primary">92%</div>
-                    <div className="text-sm text-muted-foreground">Overall Score</div>
+                    <div className="text-sm text-muted-foreground">Match Score</div>
                   </div>
                 </div>
 
@@ -299,15 +308,22 @@ export default function IndexV2() {
 
                 <div className="mt-6 pt-6 border-t border-border flex items-center gap-2 text-sm text-muted-foreground">
                   <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                  <span>Excellent! Your resume is well-optimized for ATS systems.</span>
+                  <span>Strong match for this role. Minor improvements suggested.</span>
                 </div>
+              </div>
+              
+              {/* Caption below score card */}
+              <div className="text-center mt-4">
+                <span className="text-xs text-muted-foreground">
+                  Scores vary by role. Always optimize per job for best results.
+                </span>
               </div>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* Final CTA Section */}
       <section className="py-24 bg-muted/30">
         <div className="container">
           <motion.div 
@@ -318,21 +334,25 @@ export default function IndexV2() {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-4">
               <Clock className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium">Start in Under 60 Seconds</span>
+              <span className="text-sm font-medium">Results in Under 60 Seconds</span>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold mb-4">
-              Ready to 10x Your Interview Rate?
+              Apply With a Resume Tailored to the Job
             </h2>
             <p className="text-lg text-muted-foreground mb-8">
-              Join thousands of job seekers who landed their dream jobs with our AI-powered resume optimization.
+              Stop sending generic resumes. Get role-specific optimization that helps you stand out.
             </p>
 
             <Link to="/dashboard">
               <Button size="lg" className="text-lg px-10 py-6">
-                <Zap className="w-5 h-5 mr-2" />
-                Analyze Your Resume Free
+                <Target className="w-5 h-5 mr-2" />
+                Optimize My Resume for a Job
               </Button>
             </Link>
+
+            <p className="mt-4 text-sm text-muted-foreground">
+              Upload resume • Paste job description • Results in under 60 seconds
+            </p>
 
             <div className="flex flex-wrap justify-center gap-6 mt-8 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
@@ -345,7 +365,7 @@ export default function IndexV2() {
               </div>
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-primary" />
-                <span>Results in 30 seconds</span>
+                <span>Instant analysis</span>
               </div>
             </div>
           </motion.div>
@@ -361,7 +381,7 @@ export default function IndexV2() {
                 <FileText className="w-4 h-4 text-primary-foreground" />
               </div>
               <span className="font-semibold">ResumeAI</span>
-              <span className="text-sm text-muted-foreground">• AI-Powered Analysis</span>
+              <span className="text-sm text-muted-foreground">• Job-Specific Optimization</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <span>© 2024 ResumeAI. All rights reserved.</span>
