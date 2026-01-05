@@ -4,7 +4,7 @@ import { FileText, History, Moon, Sun, Snowflake, TreePine, LogOut, User, Zap, B
 import { motion } from 'framer-motion';
 import { useTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/hooks/useAuth';
-import { useIsAdmin } from '@/hooks/useAppSettings';
+import { useIsAdmin, useIsOwner } from '@/hooks/useAppSettings';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,6 +23,7 @@ export function Header({ onSnowToggle, isSnowing }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { user, signInWithGoogle, signOut, loading } = useAuth();
   const { isAdmin } = useIsAdmin();
+  const { isOwner } = useIsOwner();
 
   const getThemeIcon = () => {
     if (theme === 'christmas') return <TreePine className="h-4 w-4 text-green-600" />;
@@ -46,27 +47,35 @@ export function Header({ onSnowToggle, isSnowing }: HeaderProps) {
         </Link>
 
         <nav className="flex items-center gap-2">
-          <Link to="/dashboard">
-            <Button variant="ghost" size="sm">Dashboard</Button>
-          </Link>
-          <Link to="/history">
-            <Button variant="ghost" size="sm">
-              <History className="w-4 h-4 mr-2" />
-              History
-            </Button>
-          </Link>
-          <Link to="/job-automation">
-            <Button variant="ghost" size="sm">
-              <Zap className="w-4 h-4 mr-2" />
-              Job Automation
-            </Button>
-          </Link>
-          <Link to="/job-drafts">
-            <Button variant="ghost" size="sm">
-              <Briefcase className="w-4 h-4 mr-2" />
-              Job Drafts
-            </Button>
-          </Link>
+          {isOwner && (
+            <Link to="/dashboard">
+              <Button variant="ghost" size="sm">Dashboard</Button>
+            </Link>
+          )}
+          {user && (
+            <Link to="/history">
+              <Button variant="ghost" size="sm">
+                <History className="w-4 h-4 mr-2" />
+                History
+              </Button>
+            </Link>
+          )}
+          {isOwner && (
+            <>
+              <Link to="/job-automation">
+                <Button variant="ghost" size="sm">
+                  <Zap className="w-4 h-4 mr-2" />
+                  Job Automation
+                </Button>
+              </Link>
+              <Link to="/job-drafts">
+                <Button variant="ghost" size="sm">
+                  <Briefcase className="w-4 h-4 mr-2" />
+                  Job Drafts
+                </Button>
+              </Link>
+            </>
+          )}
           
           <Button
             variant="ghost"

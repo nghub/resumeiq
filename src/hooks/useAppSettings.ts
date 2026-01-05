@@ -76,3 +76,35 @@ export function useIsAdmin() {
 
   return { isAdmin, loading };
 }
+
+const OWNER_EMAIL = "bhulku2@gmail.com";
+
+export function useIsOwner() {
+  const [isOwner, setIsOwner] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function checkOwner() {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setIsOwner(false);
+        setLoading(false);
+        return;
+      }
+
+      setIsOwner(user.email === OWNER_EMAIL);
+      setLoading(false);
+    }
+
+    checkOwner();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      checkOwner();
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  return { isOwner, loading };
+}
