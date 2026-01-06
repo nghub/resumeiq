@@ -1,12 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, FileText, Calendar, TrendingUp, LogIn } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Loader2, FileText, Calendar, TrendingUp, LogIn, Search, LayoutGrid, Check } from 'lucide-react';
 import { format } from 'date-fns';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface ScanHistory {
   id: string;
@@ -20,16 +29,36 @@ interface ScanHistory {
   resumes: {
     title: string;
   } | null;
+  trackStatus: TrackerStatus;
+  isTracked: boolean;
 }
+
+type TrackerStatus = 'bookmarked' | 'applied' | 'interviewing' | 'offer' | 'rejected';
+
+const trackerStatusOptions: { value: TrackerStatus; label: string }[] = [
+  { value: 'bookmarked', label: 'Saved' },
+  { value: 'applied', label: 'Applied' },
+  { value: 'interviewing', label: 'Interview' },
+  { value: 'offer', label: 'Offer' },
+  { value: 'rejected', label: 'Rejected' },
+];
+
+type SortOption = 'date-newest' | 'score-highest';
 
 export default function History() {
   const { user, loading: authLoading, signInWithGoogle } = useAuth();
+  const navigate = useNavigate();
   const [scans, setScans] = useState<ScanHistory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOption, setSortOption] = useState<SortOption>('date-newest');
+  const [trackedScanIds, setTrackedScanIds] = useState<Set<string>>(new Set());
+  const [trackingInProgress, setTrackingInProgress] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user) {
       fetchHistory();
+      fetchTrackedJobs();
     } else {
       setLoading(false);
     }
@@ -48,13 +77,95 @@ export default function History() {
         resumes (title)
       `)
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(50);
 
     if (!error && data) {
-      setScans(data as ScanHistory[]);
+      const scansWithStatus = data.map((scan) => ({
+        ...scan,
+        trackStatus: 'bookmarked' as TrackerStatus,
+        isTracked: false,
+      }));
+      setScans(scansWithStatus as ScanHistory[]);
     }
     setLoading(false);
   };
+
+  const fetchTrackedJobs = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('job_drafts')
+      .select('id')
+      .eq('user_id', user.id);
+    
+    if (data) {
+      setTrackedScanIds(new Set(data.map((job) => job.id)));
+    }
+  };
+
+  const handleStatusChange = (scanId: string, newStatus: TrackerStatus) => {
+    setScans((prev) =>
+      prev.map((scan) =>
+        scan.id === scanId ? { ...scan, trackStatus: newStatus } : scan
+      )
+    );
+  };
+
+  const handleTrackJob = async (scan: ScanHistory) => {
+    if (!user) return;
+
+    setTrackingInProgress((prev) => new Set(prev).add(scan.id));
+
+    try {
+      const { error } = await supabase.from('job_drafts').insert({
+        user_id: user.id,
+        job_title: scan.job_descriptions?.title || 'Unknown Position',
+        company_name: scan.job_descriptions?.company || 'Unknown Company',
+        job_description: '',
+        status: scan.trackStatus,
+        ats_score: scan.overall_score,
+      });
+
+      if (error) throw error;
+
+      setScans((prev) =>
+        prev.map((s) => (s.id === scan.id ? { ...s, isTracked: true } : s))
+      );
+      toast.success('Job added to Application Tracker');
+    } catch (error) {
+      console.error('Error tracking job:', error);
+      toast.error('Failed to add job to tracker');
+    } finally {
+      setTrackingInProgress((prev) => {
+        const next = new Set(prev);
+        next.delete(scan.id);
+        return next;
+      });
+    }
+  };
+
+  const filteredAndSortedScans = useMemo(() => {
+    let result = [...scans];
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (scan) =>
+          scan.job_descriptions?.title?.toLowerCase().includes(query) ||
+          scan.job_descriptions?.company?.toLowerCase().includes(query) ||
+          scan.resumes?.title?.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort
+    if (sortOption === 'date-newest') {
+      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    } else if (sortOption === 'score-highest') {
+      result.sort((a, b) => b.overall_score - a.overall_score);
+    }
+
+    return result;
+  }, [scans, searchQuery, sortOption]);
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-500';
@@ -128,65 +239,134 @@ export default function History() {
             </p>
           </div>
 
+          {/* Control Bar */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by company or job title..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={sortOption} onValueChange={(v) => setSortOption(v as SortOption)}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date-newest">Date (Newest)</SelectItem>
+                <SelectItem value="score-highest">Score (Highest)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-          ) : scans.length === 0 ? (
+          ) : filteredAndSortedScans.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No scans yet</h3>
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  {scans.length === 0 ? 'No scans yet' : 'No results found'}
+                </h3>
                 <p className="text-muted-foreground mb-4">
-                  Start by scanning your first resume
+                  {scans.length === 0 ? 'Start by scanning your first resume' : 'Try adjusting your search'}
                 </p>
-                <Link to="/dashboard">
-                  <Button>Go to Dashboard</Button>
-                </Link>
+                {scans.length === 0 && (
+                  <Link to="/dashboard">
+                    <Button>Go to Dashboard</Button>
+                  </Link>
+                )}
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {scans.map((scan, index) => (
-                <motion.div
-                  key={scan.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <FileText className="w-5 h-5 text-primary" />
-                            <h3 className="font-semibold text-foreground">
-                              {scan.resumes?.title || 'Untitled Resume'}
-                            </h3>
+              {filteredAndSortedScans.map((scan, index) => {
+                const isTracking = trackingInProgress.has(scan.id);
+                const isAlreadyTracked = scan.isTracked;
+
+                return (
+                  <motion.div
+                    key={scan.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                  >
+                    <Card className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-2">
+                              <FileText className="w-5 h-5 text-primary shrink-0" />
+                              <Link
+                                to={`/dashboard?scanId=${scan.id}`}
+                                className="font-semibold text-foreground hover:text-primary transition-colors truncate"
+                              >
+                                {scan.resumes?.title || 'Untitled Resume'}
+                              </Link>
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {scan.job_descriptions?.title || 'Unknown Position'}
+                              {scan.job_descriptions?.company && ` at ${scan.job_descriptions.company}`}
+                            </p>
+                            <div className="flex items-center gap-4 mt-3">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <Calendar className="w-3 h-3" />
+                                {format(new Date(scan.created_at), 'MMM d, yyyy h:mm a')}
+                              </div>
+                              <Select
+                                value={scan.trackStatus}
+                                onValueChange={(v) => handleStatusChange(scan.id, v as TrackerStatus)}
+                                disabled={isAlreadyTracked}
+                              >
+                                <SelectTrigger className="h-7 w-28 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {trackerStatusOptions.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {scan.job_descriptions?.title || 'Unknown Position'}
-                            {scan.job_descriptions?.company && ` at ${scan.job_descriptions.company}`}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                            <Calendar className="w-3 h-3" />
-                            {format(new Date(scan.created_at), 'MMM d, yyyy h:mm a')}
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className={`text-3xl font-bold ${getScoreColor(scan.overall_score)}`}>
+                                {scan.overall_score}%
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <TrendingUp className="w-3 h-3" />
+                                ATS Score
+                              </div>
+                            </div>
+                            <Button
+                              variant={isAlreadyTracked ? 'secondary' : 'outline'}
+                              size="icon"
+                              onClick={() => handleTrackJob(scan)}
+                              disabled={isTracking || isAlreadyTracked}
+                              title={isAlreadyTracked ? 'Already tracked' : 'Add to App Tracker'}
+                            >
+                              {isTracking ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : isAlreadyTracked ? (
+                                <Check className="w-4 h-4" />
+                              ) : (
+                                <LayoutGrid className="w-4 h-4" />
+                              )}
+                            </Button>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className={`text-3xl font-bold ${getScoreColor(scan.overall_score)}`}>
-                            {scan.overall_score}%
-                          </div>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <TrendingUp className="w-3 h-3" />
-                            ATS Score
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </motion.div>
