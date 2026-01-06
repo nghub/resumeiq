@@ -15,8 +15,6 @@ import {
   XCircle,
   ExternalLink,
   GripVertical,
-  Building2,
-  FileCheck,
   Loader2,
   Trash2
 } from "lucide-react";
@@ -26,7 +24,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +52,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { JobDetailsDialog, JobDetails } from "@/components/JobDetailsDialog";
 
 // Types
 interface JobApplication {
@@ -292,6 +290,59 @@ export default function ApplicationTracker() {
   const handleDeleteClick = (e: React.MouseEvent, job: JobApplication) => {
     e.stopPropagation();
     setJobToDelete(job);
+  };
+
+  const handleSaveJob = async (updatedJob: JobDetails) => {
+    try {
+      const { error } = await supabase
+        .from("job_drafts")
+        .update({
+          job_title: updatedJob.title,
+          company_name: updatedJob.company,
+          location: updatedJob.location,
+          job_description: updatedJob.description || "",
+          job_url: updatedJob.jobUrl || null,
+        })
+        .eq("id", updatedJob.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setJobs((prevJobs) =>
+        prevJobs.map((job) =>
+          job.id === updatedJob.id
+            ? {
+                ...job,
+                title: updatedJob.title,
+                company: updatedJob.company,
+                location: updatedJob.location,
+                description: updatedJob.description,
+                jobUrl: updatedJob.jobUrl,
+              }
+            : job
+        )
+      );
+      
+      // Update selected job to reflect changes
+      setSelectedJob((prev) =>
+        prev?.id === updatedJob.id
+          ? {
+              ...prev,
+              title: updatedJob.title,
+              company: updatedJob.company,
+              location: updatedJob.location,
+              description: updatedJob.description,
+              jobUrl: updatedJob.jobUrl,
+            }
+          : prev
+      );
+
+      toast.success("Job updated successfully");
+    } catch (error) {
+      console.error("Error updating job:", error);
+      toast.error("Failed to update job");
+      throw error;
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -555,112 +606,20 @@ export default function ApplicationTracker() {
       </Dialog>
 
       {/* Job Detail Modal */}
-      <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
-        <DialogContent className="sm:max-w-2xl bg-card max-h-[85vh]">
-          {selectedJob && (
-            <>
-              <DialogHeader>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <DialogTitle className="text-xl font-semibold">{selectedJob.title}</DialogTitle>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Building2 className="h-4 w-4" />
-                      <span>{selectedJob.company}</span>
-                    </div>
-                  </div>
-                  <Badge className={cn(
-                    "shrink-0 text-sm font-medium",
-                    selectedJob.matchScore >= 90 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300" :
-                    selectedJob.matchScore >= 80 ? "bg-primary/10 text-primary" :
-                    selectedJob.matchScore >= 70 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300" :
-                    "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-400"
-                  )}>
-                    {selectedJob.matchScore}% Match
-                  </Badge>
-                </div>
-              </DialogHeader>
-
-              <div className="space-y-4 py-4">
-                {/* Meta Info */}
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span>{selectedJob.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="h-4 w-4" />
-                    <span>Added {selectedJob.dateAdded}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <FileCheck className="h-4 w-4" />
-                    <span>{selectedJob.resumeVersion}</span>
-                  </div>
-                </div>
-
-                {/* Status */}
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-foreground">Status:</span>
-                  <Badge variant="secondary" className="capitalize">
-                    {columns.find(c => c.id === selectedJob.status)?.title || selectedJob.status}
-                  </Badge>
-                </div>
-
-                {/* Job URL */}
-                {selectedJob.jobUrl && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Job URL</Label>
-                    <a
-                      href={selectedJob.jobUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-primary hover:underline text-sm"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      {selectedJob.jobUrl}
-                    </a>
-                  </div>
-                )}
-
-                {/* Job Description */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Job Description</Label>
-                  <ScrollArea className="h-[250px] rounded-lg border border-border bg-muted/30 p-4">
-                    {selectedJob.description ? (
-                      <p className="text-sm text-foreground whitespace-pre-wrap">{selectedJob.description}</p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">No job description available</p>
-                    )}
-                  </ScrollArea>
-                </div>
-              </div>
-
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    setJobToDelete(selectedJob);
-                  }}
-                  className="sm:mr-auto"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-                <Button variant="outline" onClick={() => setSelectedJob(null)}>
-                  Close
-                </Button>
-                {selectedJob.jobUrl && (
-                  <Button asChild>
-                    <a href={selectedJob.jobUrl} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      View Job Posting
-                    </a>
-                  </Button>
-                )}
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      <JobDetailsDialog
+        job={selectedJob}
+        open={!!selectedJob}
+        onOpenChange={(open) => !open && setSelectedJob(null)}
+        onSave={handleSaveJob}
+        onDelete={(job) => setJobToDelete(job as JobApplication)}
+        statusLabels={{
+          bookmarked: "Bookmarked",
+          applied: "Applied",
+          interviewing: "Interviewing",
+          offer: "Offer",
+          rejected: "Rejected",
+        }}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!jobToDelete} onOpenChange={() => setJobToDelete(null)}>

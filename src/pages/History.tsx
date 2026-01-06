@@ -16,6 +16,7 @@ import { Loader2, FileText, Calendar, TrendingUp, LogIn, Search, LayoutGrid, Che
 import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { JobDetailsDialog, JobDetails } from '@/components/JobDetailsDialog';
 
 interface ScanHistory {
   id: string;
@@ -25,6 +26,7 @@ interface ScanHistory {
   job_descriptions: {
     title: string;
     company: string | null;
+    raw_text?: string | null;
   } | null;
   resumes: {
     title: string;
@@ -54,6 +56,7 @@ export default function History() {
   const [sortOption, setSortOption] = useState<SortOption>('date-newest');
   const [trackedScanIds, setTrackedScanIds] = useState<Set<string>>(new Set());
   const [trackingInProgress, setTrackingInProgress] = useState<Set<string>>(new Set());
+  const [selectedScan, setSelectedScan] = useState<ScanHistory | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -73,7 +76,7 @@ export default function History() {
         created_at,
         overall_score,
         status,
-        job_descriptions (title, company),
+        job_descriptions (title, company, raw_text),
         resumes (title)
       `)
       .order('created_at', { ascending: false })
@@ -141,6 +144,23 @@ export default function History() {
         return next;
       });
     }
+  };
+
+  // Convert scan to JobDetails for dialog
+  const scanToJobDetails = (scan: ScanHistory): JobDetails => ({
+    id: scan.id,
+    title: scan.job_descriptions?.title || 'Unknown Position',
+    company: scan.job_descriptions?.company || 'Unknown Company',
+    location: 'Remote',
+    dateAdded: format(new Date(scan.created_at), 'MMM d, yyyy'),
+    matchScore: scan.overall_score,
+    resumeVersion: scan.resumes?.title || 'Unknown Resume',
+    status: scan.trackStatus,
+    description: scan.job_descriptions?.raw_text || undefined,
+  });
+
+  const handleCardClick = (scan: ScanHistory) => {
+    setSelectedScan(scan);
   };
 
   const filteredAndSortedScans = useMemo(() => {
@@ -294,6 +314,8 @@ export default function History() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
+                    onClick={() => handleCardClick(scan)}
+                    className="cursor-pointer"
                   >
                     <Card className="hover:shadow-md transition-shadow">
                       <CardContent className="p-6">
@@ -371,6 +393,22 @@ export default function History() {
           )}
         </motion.div>
       </div>
+
+      {/* Job Details Dialog */}
+      {selectedScan && (
+        <JobDetailsDialog
+          job={scanToJobDetails(selectedScan)}
+          open={!!selectedScan}
+          onOpenChange={(open) => !open && setSelectedScan(null)}
+          statusLabels={{
+            bookmarked: 'Saved',
+            applied: 'Applied',
+            interviewing: 'Interview',
+            offer: 'Offer',
+            rejected: 'Rejected',
+          }}
+        />
+      )}
     </div>
   );
 }
