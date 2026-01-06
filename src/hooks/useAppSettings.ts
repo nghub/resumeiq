@@ -77,8 +77,6 @@ export function useIsAdmin() {
   return { isAdmin, loading };
 }
 
-const OWNER_EMAIL = "bhulku2@gmail.com";
-
 export function useIsOwner() {
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -93,7 +91,20 @@ export function useIsOwner() {
         return;
       }
 
-      setIsOwner(user.email === OWNER_EMAIL);
+      // Check for 'owner' role in user_roles table (server-side validation)
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "owner")
+        .maybeSingle();
+
+      if (!error && data) {
+        setIsOwner(true);
+      } else {
+        setIsOwner(false);
+      }
+      
       setLoading(false);
     }
 

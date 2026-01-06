@@ -19,8 +19,6 @@ import AdminSettings from "./pages/AdminSettings";
 import ApplicationTracker from "./pages/ApplicationTracker";
 import NotFound from "./pages/NotFound";
 
-const OWNER_EMAIL = "bhulku2@gmail.com";
-
 const queryClient = new QueryClient();
 
 function LandingPage() {
