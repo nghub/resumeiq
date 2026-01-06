@@ -1,14 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const ADZUNA_APP_ID = "cb63fe68";
-const ADZUNA_API_KEY = "af2183ca6e725db420c584b25b868953";
+const ADZUNA_APP_ID = Deno.env.get("ADZUNA_APP_ID") || "cb63fe68";
+const ADZUNA_API_KEY = Deno.env.get("ADZUNA_API_KEY") || "af2183ca6e725db420c584b25b868953";
 const DAILY_LIMIT = 3;
+
+// Input validation schema
+const inputSchema = z.object({
+  automationId: z.string().uuid("Invalid automation ID format"),
+});
 
 interface AdzunaJob {
   id: string;
@@ -49,7 +55,30 @@ serve(async (req) => {
       });
     }
 
-    const { automationId } = await req.json();
+    // Parse and validate input
+    let rawInput: unknown;
+    try {
+      rawInput = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON payload" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const validationResult = inputSchema.safeParse(rawInput);
+    if (!validationResult.success) {
+      console.error("Input validation failed:", validationResult.error.errors);
+      return new Response(JSON.stringify({ 
+        error: "Invalid input", 
+        details: validationResult.error.errors.map(e => e.message) 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { automationId } = validationResult.data;
 
     // Get automation settings
     const { data: settings, error: settingsError } = await supabase

@@ -1,9 +1,46 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Feedback item schema
+const feedbackItemSchema = z.object({
+  id: z.string(),
+  section: z.string().optional(),
+  originalText: z.string(),
+  issue: z.string().optional(),
+});
+
+// Chat history message schema
+const chatMessageSchema = z.object({
+  role: z.enum(['user', 'assistant', 'system']),
+  content: z.string().max(50000),
+});
+
+// Full rewrite mode schema
+const fullRewriteSchema = z.object({
+  resumeText: z.string().min(1).max(100000),
+  jobDescription: z.string().min(1).max(50000),
+  mode: z.literal('full_rewrite'),
+});
+
+// Chat mode schema
+const chatModeSchema = z.object({
+  resumeText: z.string().max(100000).optional(),
+  jobDescription: z.string().max(50000).optional(),
+  userMessage: z.string().min(1).max(10000),
+  chatHistory: z.array(chatMessageSchema).max(50).optional(),
+});
+
+// Feedback mode schema
+const feedbackModeSchema = z.object({
+  resumeText: z.string().min(1).max(100000),
+  jobDescription: z.string().min(1).max(50000),
+  feedback: z.array(feedbackItemSchema).min(1).max(50),
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,15 +48,42 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeText, jobDescription, feedback, userMessage, chatHistory, mode } = await req.json();
+    // Parse JSON input
+    let rawInput: unknown;
+    try {
+      rawInput = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON payload' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
+    // Determine mode and validate accordingly
+    const inputObj = rawInput as Record<string, unknown>;
+
     // Full resume rewrite mode - Target 95%+ ATS score
-    if (mode === 'full_rewrite') {
+    if (inputObj.mode === 'full_rewrite') {
+      const validationResult = fullRewriteSchema.safeParse(rawInput);
+      if (!validationResult.success) {
+        console.error('Input validation failed:', validationResult.error.errors);
+        return new Response(JSON.stringify({ 
+          error: 'Invalid input', 
+          details: validationResult.error.errors.map(e => e.message) 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { resumeText, jobDescription } = validationResult.data;
+
       const systemPrompt = `You are an expert Resume Writer and ATS Optimization Specialist. Your task is to completely rewrite the provided resume to achieve a 95%+ ATS (Applicant Tracking System) compatibility score against the target job description.
 
 CRITICAL INSTRUCTIONS:
@@ -99,7 +163,21 @@ Generate the COMPLETE rewritten resume now. Do not stop until finished.`;
     }
 
     // Chat mode - Resume Copilot
-    if (userMessage) {
+    if (inputObj.userMessage) {
+      const validationResult = chatModeSchema.safeParse(rawInput);
+      if (!validationResult.success) {
+        console.error('Input validation failed:', validationResult.error.errors);
+        return new Response(JSON.stringify({ 
+          error: 'Invalid input', 
+          details: validationResult.error.errors.map(e => e.message) 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { resumeText, jobDescription, userMessage, chatHistory } = validationResult.data;
+
       const systemPrompt = `You are an expert Resume Copilot AI assistant. You help users optimize their resumes for ATS (Applicant Tracking Systems) and improve their chances of getting interviews.
 
 Your capabilities:
@@ -178,7 +256,22 @@ Guidelines:
     }
 
     // Original rewrite mode - batch feedback processing
-    const systemPrompt = `You are an expert resume writer specializing in ATS optimization. Your task is to rewrite resume lines to maximize ATS compatibility while maintaining truthfulness.
+    if (inputObj.feedback) {
+      const validationResult = feedbackModeSchema.safeParse(rawInput);
+      if (!validationResult.success) {
+        console.error('Input validation failed:', validationResult.error.errors);
+        return new Response(JSON.stringify({ 
+          error: 'Invalid input', 
+          details: validationResult.error.errors.map(e => e.message) 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { resumeText, jobDescription, feedback } = validationResult.data;
+
+      const systemPrompt = `You are an expert resume writer specializing in ATS optimization. Your task is to rewrite resume lines to maximize ATS compatibility while maintaining truthfulness.
 
 Rules:
 1. NEVER fabricate experience or skills
@@ -202,11 +295,11 @@ Return ONLY valid JSON in this exact format:
   ]
 }`;
 
-    const feedbackSummary = feedback.map((f: any) => 
-      `- ID: ${f.id}, Section: ${f.section}, Original: "${f.originalText}", Issue: ${f.issue}`
-    ).join('\n');
+      const feedbackSummary = feedback.map((f) => 
+        `- ID: ${f.id}, Section: ${f.section || 'Unknown'}, Original: "${f.originalText}", Issue: ${f.issue || 'Needs improvement'}`
+      ).join('\n');
 
-    const userPrompt = `RESUME:
+      const userPrompt = `RESUME:
 ${resumeText}
 
 JOB DESCRIPTION:
@@ -217,56 +310,65 @@ ${feedbackSummary}
 
 Rewrite each line from the feedback to achieve a 95% ATS match score while preserving truthfulness.`;
 
-    console.log('Calling AI Gateway for resume rewriting...');
-    
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.4,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
+      console.log('Calling AI Gateway for resume rewriting...');
       
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          temperature: 0.4,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AI Gateway error:', response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        throw new Error(`AI Gateway error: ${response.status}`);
       }
+
+      const aiResponse = await response.json();
+      const content = aiResponse.choices?.[0]?.message?.content;
       
-      throw new Error(`AI Gateway error: ${response.status}`);
+      if (!content) {
+        throw new Error('Empty response from AI');
+      }
+
+      let jsonContent = content;
+      if (content.includes('```json')) {
+        jsonContent = content.split('```json')[1].split('```')[0].trim();
+      } else if (content.includes('```')) {
+        jsonContent = content.split('```')[1].split('```')[0].trim();
+      }
+
+      const rewriteResult = JSON.parse(jsonContent);
+      console.log('Rewrite complete. Lines:', rewriteResult.optimizedLines?.length);
+
+      return new Response(JSON.stringify(rewriteResult), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error('Empty response from AI');
-    }
-
-    let jsonContent = content;
-    if (content.includes('```json')) {
-      jsonContent = content.split('```json')[1].split('```')[0].trim();
-    } else if (content.includes('```')) {
-      jsonContent = content.split('```')[1].split('```')[0].trim();
-    }
-
-    const rewriteResult = JSON.parse(jsonContent);
-    console.log('Rewrite complete. Lines:', rewriteResult.optimizedLines?.length);
-
-    return new Response(JSON.stringify(rewriteResult), {
+    // No valid mode detected
+    return new Response(JSON.stringify({ 
+      error: 'Invalid request: must specify mode, userMessage, or feedback' 
+    }), {
+      status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
