@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FileUpload } from '@/components/FileUpload';
 import { AnalysisLoader } from '@/components/AnalysisLoader';
@@ -60,14 +61,16 @@ interface SkillsGapData {
 export default function Dashboard() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
-const [companyName, setCompanyName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [jobTitle, setJobTitle] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [rewriting, setRewriting] = useState(false);
   const [activeTab, setActiveTab] = useState('input');
+  const [loadingScan, setLoadingScan] = useState(false);
 
   // Results
   const [score, setScore] = useState<number | null>(null);
@@ -86,6 +89,67 @@ const [companyName, setCompanyName] = useState('');
   // Skills gap analysis state
   const [skillsGapData, setSkillsGapData] = useState<SkillsGapData | null>(null);
   const [analyzingSkills, setAnalyzingSkills] = useState(false);
+
+  // Load scan from URL parameter
+  useEffect(() => {
+    const scanId = searchParams.get('scanId');
+    if (!scanId) return;
+
+    const loadScan = async () => {
+      setLoadingScan(true);
+      try {
+        const { data: scan, error } = await supabase
+          .from('scans')
+          .select(`
+            *,
+            resumes (raw_text, title),
+            job_descriptions (raw_text, title, company)
+          `)
+          .eq('id', scanId)
+          .maybeSingle();
+
+        if (error) throw error;
+        if (!scan) {
+          toast({ title: 'Scan not found', description: 'The requested scan could not be found.', variant: 'destructive' });
+          return;
+        }
+
+        // Populate state with saved scan data
+        setScore(scan.overall_score);
+        setBreakdown(scan.score_breakdown as unknown as ScoreBreakdown);
+        setFeedback((scan.feedback as unknown as LineFeedback[]) || []);
+        setSummary('Analysis loaded from history.');
+
+        // Load resume text if available
+        if (scan.resumes?.raw_text) {
+          setResumeText(scan.resumes.raw_text);
+        }
+
+        // Load job description if available
+        if (scan.job_descriptions?.raw_text) {
+          setJobDescription(scan.job_descriptions.raw_text);
+        }
+        if (scan.job_descriptions?.company) {
+          setCompanyName(scan.job_descriptions.company);
+        }
+        if (scan.job_descriptions?.title) {
+          setJobTitle(scan.job_descriptions.title);
+        }
+
+        // Auto-switch to Results tab
+        setActiveTab('results');
+        
+        toast({ title: 'Scan loaded', description: 'Viewing your saved scan results.' });
+      } catch (error: any) {
+        console.error('Error loading scan:', error);
+        toast({ title: 'Failed to load scan', description: error.message || 'Please try again.', variant: 'destructive' });
+      } finally {
+        setLoadingScan(false);
+      }
+    };
+
+    loadScan();
+  }, [searchParams, toast]);
 
   // Save state to localStorage before sign-in
   const saveStateToStorage = useCallback(() => {
@@ -345,7 +409,7 @@ const [companyName, setCompanyName] = useState('');
 
   return (
     <div className="min-h-screen bg-background">
-      <AnalysisLoader isAnalyzing={analyzing} />
+      <AnalysisLoader isAnalyzing={analyzing || loadingScan} />
       
       <main className="container py-8 max-w-7xl">
         <motion.div
