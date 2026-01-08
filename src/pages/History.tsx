@@ -14,9 +14,9 @@ import {
 } from '@/components/ui/select';
 import { Loader2, FileText, Calendar, TrendingUp, LogIn, Search, LayoutGrid, Check } from 'lucide-react';
 import { format } from 'date-fns';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { JobDetailsDialog, JobDetails } from '@/components/JobDetailsDialog';
+
 
 interface ScanHistory {
   id: string;
@@ -56,7 +56,7 @@ export default function History() {
   const [sortOption, setSortOption] = useState<SortOption>('date-newest');
   const [trackedScanIds, setTrackedScanIds] = useState<Set<string>>(new Set());
   const [trackingInProgress, setTrackingInProgress] = useState<Set<string>>(new Set());
-  const [selectedScan, setSelectedScan] = useState<ScanHistory | null>(null);
+  
 
   useEffect(() => {
     if (user) {
@@ -146,22 +146,7 @@ export default function History() {
     }
   };
 
-  // Convert scan to JobDetails for dialog
-  const scanToJobDetails = (scan: ScanHistory): JobDetails => ({
-    id: scan.id,
-    title: scan.job_descriptions?.title || 'Unknown Position',
-    company: scan.job_descriptions?.company || 'Unknown Company',
-    location: 'Remote',
-    dateAdded: format(new Date(scan.created_at), 'MMM d, yyyy'),
-    matchScore: scan.overall_score,
-    resumeVersion: scan.resumes?.title || 'Unknown Resume',
-    status: scan.trackStatus,
-    description: scan.job_descriptions?.raw_text || undefined,
-  });
 
-  const handleCardClick = (scan: ScanHistory) => {
-    setSelectedScan(scan);
-  };
 
   const filteredAndSortedScans = useMemo(() => {
     let result = [...scans];
@@ -296,9 +281,7 @@ export default function History() {
                   {scans.length === 0 ? 'Start by scanning your first resume' : 'Try adjusting your search'}
                 </p>
                 {scans.length === 0 && (
-                  <Link to="/dashboard">
-                    <Button>Go to Dashboard</Button>
-                  </Link>
+                  <Button onClick={() => navigate('/dashboard')}>Go to Dashboard</Button>
                 )}
               </CardContent>
             </Card>
@@ -314,7 +297,7 @@ export default function History() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    onClick={() => handleCardClick(scan)}
+                    onClick={() => navigate(`/dashboard?scanId=${scan.id}`)}
                     className="cursor-pointer"
                   >
                     <Card className="hover:shadow-md transition-shadow">
@@ -323,12 +306,9 @@ export default function History() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2">
                               <FileText className="w-5 h-5 text-primary shrink-0" />
-                              <Link
-                                to={`/dashboard?scanId=${scan.id}`}
-                                className="font-semibold text-foreground hover:text-primary transition-colors truncate"
-                              >
+                              <span className="font-semibold text-foreground truncate">
                                 {scan.resumes?.title || 'Untitled Resume'}
-                              </Link>
+                              </span>
                             </div>
                             <p className="text-sm text-muted-foreground truncate">
                               {scan.job_descriptions?.title || 'Unknown Position'}
@@ -339,22 +319,24 @@ export default function History() {
                                 <Calendar className="w-3 h-3" />
                                 {format(new Date(scan.created_at), 'MMM d, yyyy h:mm a')}
                               </div>
-                              <Select
-                                value={scan.trackStatus}
-                                onValueChange={(v) => handleStatusChange(scan.id, v as TrackerStatus)}
-                                disabled={isAlreadyTracked}
-                              >
-                                <SelectTrigger className="h-7 w-28 text-xs">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {trackerStatusOptions.map((opt) => (
-                                    <SelectItem key={opt.value} value={opt.value}>
-                                      {opt.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <Select
+                                  value={scan.trackStatus}
+                                  onValueChange={(v) => handleStatusChange(scan.id, v as TrackerStatus)}
+                                  disabled={isAlreadyTracked}
+                                >
+                                  <SelectTrigger className="h-7 w-28 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {trackerStatusOptions.map((opt) => (
+                                      <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
@@ -370,7 +352,10 @@ export default function History() {
                             <Button
                               variant={isAlreadyTracked ? 'secondary' : 'outline'}
                               size="icon"
-                              onClick={() => handleTrackJob(scan)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTrackJob(scan);
+                              }}
                               disabled={isTracking || isAlreadyTracked}
                               title={isAlreadyTracked ? 'Already tracked' : 'Add to App Tracker'}
                             >
@@ -394,21 +379,6 @@ export default function History() {
         </motion.div>
       </div>
 
-      {/* Job Details Dialog */}
-      {selectedScan && (
-        <JobDetailsDialog
-          job={scanToJobDetails(selectedScan)}
-          open={!!selectedScan}
-          onOpenChange={(open) => !open && setSelectedScan(null)}
-          statusLabels={{
-            bookmarked: 'Saved',
-            applied: 'Applied',
-            interviewing: 'Interview',
-            offer: 'Offer',
-            rejected: 'Rejected',
-          }}
-        />
-      )}
     </div>
   );
 }
