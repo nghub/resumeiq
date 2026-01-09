@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FileUpload } from '@/components/FileUpload';
@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useDashboardSession } from '@/contexts/DashboardSessionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Sparkles, 
@@ -30,65 +31,54 @@ import {
 const DASHBOARD_STATE_KEY = 'resumeai_dashboard_state';
 import type { ScoreBreakdown, LineFeedback } from '@/types/resume';
 
-interface KeywordItem {
-  keyword: string;
-  jdCount: number;
-  resumeCount: number;
-}
-
-interface SkillItem {
-  skill: string;
-  importance: 'high' | 'medium' | 'low';
-}
-
-interface MissingSkill extends SkillItem {
-  courses: {
-    platform: string;
-    title: string;
-    duration: string;
-    rating: number;
-    price: string;
-    url: string;
-  }[];
-}
-
-interface SkillsGapData {
-  matchedSkills: SkillItem[];
-  requiredSkills: SkillItem[];
-  missingSkills: MissingSkill[];
-}
-
 export default function Dashboard() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
 
-  const [resumeText, setResumeText] = useState('');
-  const [jobDescription, setJobDescription] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [jobTitle, setJobTitle] = useState('');
-  const [analyzing, setAnalyzing] = useState(false);
-  const [rewriting, setRewriting] = useState(false);
-  const [activeTab, setActiveTab] = useState('input');
-  const [loadingScan, setLoadingScan] = useState(false);
-
-  // Results
-  const [score, setScore] = useState<number | null>(null);
-  const [breakdown, setBreakdown] = useState<ScoreBreakdown | null>(null);
-  const [summary, setSummary] = useState<string>('');
-  const [keywordDensity, setKeywordDensity] = useState<KeywordItem[]>([]);
-  const [feedback, setFeedback] = useState<LineFeedback[]>([]);
-
-  // Score comparison state
-  const [previousScore, setPreviousScore] = useState<number | null>(null);
-  const [showComparison, setShowComparison] = useState(false);
-
-  // Optimized resume state (persists across tabs)
-  const [optimizedResume, setOptimizedResume] = useState<string | null>(null);
-
-  // Skills gap analysis state
-  const [skillsGapData, setSkillsGapData] = useState<SkillsGapData | null>(null);
-  const [analyzingSkills, setAnalyzingSkills] = useState(false);
+  // Use global context for all state
+  const {
+    resumeText,
+    setResumeText,
+    jobDescription,
+    setJobDescription,
+    companyName,
+    setCompanyName,
+    jobTitle,
+    setJobTitle,
+    resumeFileName,
+    setResumeFileName,
+    score,
+    setScore,
+    breakdown,
+    setBreakdown,
+    summary,
+    setSummary,
+    keywordDensity,
+    setKeywordDensity,
+    feedback,
+    setFeedback,
+    skillsGapData,
+    setSkillsGapData,
+    previousScore,
+    setPreviousScore,
+    showComparison,
+    setShowComparison,
+    optimizedResume,
+    setOptimizedResume,
+    activeTab,
+    setActiveTab,
+    analyzing,
+    setAnalyzing,
+    rewriting,
+    setRewriting,
+    analyzingSkills,
+    setAnalyzingSkills,
+    loadingScan,
+    setLoadingScan,
+    isAnalysisComplete,
+    resetSession,
+  } = useDashboardSession();
 
   // Load scan from URL parameter
   useEffect(() => {
@@ -149,7 +139,7 @@ export default function Dashboard() {
     };
 
     loadScan();
-  }, [searchParams, toast]);
+  }, [searchParams, toast, setScore, setBreakdown, setFeedback, setSummary, setResumeText, setJobDescription, setCompanyName, setJobTitle, setActiveTab, setLoadingScan]);
 
   // Save state to localStorage before sign-in
   const saveStateToStorage = useCallback(() => {
@@ -158,6 +148,7 @@ export default function Dashboard() {
       jobDescription,
       companyName,
       jobTitle,
+      resumeFileName,
       score,
       breakdown,
       summary,
@@ -170,7 +161,7 @@ export default function Dashboard() {
       activeTab
     };
     localStorage.setItem(DASHBOARD_STATE_KEY, JSON.stringify(state));
-  }, [resumeText, jobDescription, companyName, jobTitle, score, breakdown, summary, keywordDensity, feedback, previousScore, showComparison, optimizedResume, skillsGapData, activeTab]);
+  }, [resumeText, jobDescription, companyName, jobTitle, resumeFileName, score, breakdown, summary, keywordDensity, feedback, previousScore, showComparison, optimizedResume, skillsGapData, activeTab]);
 
   // Restore state from localStorage after login
   useEffect(() => {
@@ -185,12 +176,13 @@ export default function Dashboard() {
           if (state.jobDescription) setJobDescription(state.jobDescription);
           if (state.companyName) setCompanyName(state.companyName);
           if (state.jobTitle) setJobTitle(state.jobTitle);
-          if (state.score !== null) setScore(state.score);
+          if (state.resumeFileName) setResumeFileName(state.resumeFileName);
+          if (state.score !== null && state.score !== undefined) setScore(state.score);
           if (state.breakdown) setBreakdown(state.breakdown);
           if (state.summary) setSummary(state.summary);
           if (state.keywordDensity) setKeywordDensity(state.keywordDensity);
           if (state.feedback) setFeedback(state.feedback);
-          if (state.previousScore !== null) setPreviousScore(state.previousScore);
+          if (state.previousScore !== null && state.previousScore !== undefined) setPreviousScore(state.previousScore);
           if (state.showComparison) setShowComparison(state.showComparison);
           if (state.optimizedResume) setOptimizedResume(state.optimizedResume);
           if (state.skillsGapData) setSkillsGapData(state.skillsGapData);
@@ -206,7 +198,7 @@ export default function Dashboard() {
         localStorage.removeItem('authRedirectPath');
       }
     }
-  }, [authLoading, user, toast]);
+  }, [authLoading, user, toast, setResumeText, setJobDescription, setCompanyName, setJobTitle, setResumeFileName, setScore, setBreakdown, setSummary, setKeywordDensity, setFeedback, setPreviousScore, setShowComparison, setOptimizedResume, setSkillsGapData, setActiveTab]);
 
   // Save state before user initiates sign-in (triggered by Header component)
   useEffect(() => {
@@ -226,7 +218,7 @@ export default function Dashboard() {
     scoreBreakdown: ScoreBreakdown,
     feedbackData: LineFeedback[],
     resumeTitle?: string,
-    jobTitle?: string,
+    jobTitleParam?: string,
     company?: string
   ) => {
     if (!user) return;
@@ -286,13 +278,7 @@ export default function Dashboard() {
   };
 
   const handleNewScan = () => {
-    setScore(null);
-    setBreakdown(null);
-    setSummary('');
-    setKeywordDensity([]);
-    setFeedback([]);
-    setSkillsGapData(null);
-    setActiveTab('input');
+    resetSession();
   };
 
   const handleAnalyzeSkills = async () => {
@@ -430,17 +416,17 @@ export default function Dashboard() {
                 <FileText className="w-4 h-4" />
                 Input
               </TabsTrigger>
-              <TabsTrigger value="results" className="flex items-center gap-2" disabled={!score}>
+              <TabsTrigger value="results" className="flex items-center gap-2" disabled={!isAnalysisComplete}>
                 <ListChecks className="w-4 h-4" />
                 Results
               </TabsTrigger>
-              <TabsTrigger value="copilot" className="flex items-center gap-2">
+              <TabsTrigger value="copilot" className="flex items-center gap-2" disabled={!isAnalysisComplete}>
                 <MessageSquare className="w-4 h-4" />
                 Copilot
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="input" className="space-y-6">
+            <TabsContent value="input" forceMount className={`space-y-6 ${activeTab !== 'input' ? 'hidden' : ''}`}>
               <div className="grid lg:grid-cols-2 gap-6">
                 {/* Resume Input */}
                 <div className="bg-card rounded-xl border border-border p-6 space-y-4">
@@ -448,7 +434,11 @@ export default function Dashboard() {
                     <FileText className="w-5 h-5 text-primary" />
                     <h2 className="text-lg font-semibold text-card-foreground">Resume</h2>
                   </div>
-                  <FileUpload onFileContent={setResumeText} />
+                  <FileUpload 
+                    onFileContent={setResumeText}
+                    fileName={resumeFileName}
+                    onFileNameChange={setResumeFileName}
+                  />
                   <div className="relative">
                     <Textarea
                       placeholder="Or paste your resume text here..."
@@ -536,7 +526,7 @@ export default function Dashboard() {
               </div>
             </TabsContent>
 
-            <TabsContent value="results" className="space-y-6">
+            <TabsContent value="results" forceMount className={`space-y-6 ${activeTab !== 'results' ? 'hidden' : ''}`}>
               {score !== null && breakdown && (
                 <>
                   {/* Top Section: Score + Breakdown */}
@@ -567,6 +557,7 @@ export default function Dashboard() {
                             size="sm"
                             onClick={() => setActiveTab('copilot')}
                             className="text-xs"
+                            disabled={!isAnalysisComplete}
                           >
                             <Sparkles className="w-3 h-3 mr-1" />
                             Open Resume Rewriter
@@ -601,7 +592,7 @@ export default function Dashboard() {
               )}
             </TabsContent>
 
-            <TabsContent value="copilot">
+            <TabsContent value="copilot" forceMount className={activeTab !== 'copilot' ? 'hidden' : ''}>
               <div className="grid lg:grid-cols-2 gap-6">
                 <ResumeCopilot 
                   resumeText={resumeText}
@@ -614,7 +605,7 @@ export default function Dashboard() {
                     resumeText={optimizedResume}
                     score={score}
                     previousScore={previousScore}
-                    onClose={() => setOptimizedResume(null)}
+                    onClose={() => setOptimizedResume('')}
                   />
                 )}
               </div>
@@ -626,7 +617,7 @@ export default function Dashboard() {
             <div className="mt-6">
               <OptimizedResumePanel 
                 resumeText={optimizedResume}
-                onClose={() => setOptimizedResume(null)}
+                onClose={() => setOptimizedResume('')}
               />
             </div>
           )}
