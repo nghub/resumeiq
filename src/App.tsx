@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { Snowfall } from "@/components/Snowfall";
 import { Header } from "@/components/Header";
 import { useAppSettings, useIsOwner } from "@/hooks/useAppSettings";
+import { DashboardSessionProvider } from "@/contexts/DashboardSessionContext";
 import Index from "./pages/Index";
 import IndexV2 from "./pages/IndexV2";
 import Dashboard from "./pages/Dashboard";
@@ -75,7 +76,7 @@ const App = () => {
               <Header onSnowToggle={() => setIsSnowing(!isSnowing)} isSnowing={isSnowing} />
               <Routes>
                 <Route path="/" element={<LandingPage />} />
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard" element={<DashboardSessionProvider><Dashboard /></DashboardSessionProvider>} />
                 <Route path="/history" element={<AuthRoute><History /></AuthRoute>} />
                 <Route path="/job-automation" element={<OwnerRoute><JobAutomation /></OwnerRoute>} />
                 <Route path="/job-drafts" element={<OwnerRoute><JobDrafts /></OwnerRoute>} />

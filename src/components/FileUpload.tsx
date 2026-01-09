@@ -10,6 +10,8 @@ interface FileUploadProps {
   accept?: Record<string, string[]>;
   label?: string;
   description?: string;
+  fileName?: string;
+  onFileNameChange?: (name: string) => void;
 }
 
 export function FileUpload({ 
@@ -21,10 +23,16 @@ export function FileUpload({
   },
   label = 'Upload Resume',
   description = 'Drag & drop your resume here, or click to select',
+  fileName: controlledFileName,
+  onFileNameChange,
 }: FileUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Use controlled fileName if provided, otherwise use internal file state
+  const displayFileName = controlledFileName || file?.name || null;
+  const hasFile = !!displayFileName;
 
   const parseFile = async (file: File): Promise<string> => {
     const fileType = file.type;
@@ -69,6 +77,7 @@ export function FileUpload({
     setFile(selectedFile);
     setParsing(true);
     setError(null);
+    onFileNameChange?.(selectedFile.name);
 
     try {
       const content = await parseFile(selectedFile);
@@ -79,7 +88,7 @@ export function FileUpload({
     } finally {
       setParsing(false);
     }
-  }, [onFileContent]);
+  }, [onFileContent, onFileNameChange]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -92,6 +101,7 @@ export function FileUpload({
     setFile(null);
     setError(null);
     onFileContent('');
+    onFileNameChange?.('');
   };
 
   const dropzoneProps = getRootProps();
@@ -99,7 +109,7 @@ export function FileUpload({
   return (
     <div className="w-full">
       <AnimatePresence mode="wait">
-        {!file ? (
+        {!hasFile ? (
           <motion.div
             key="dropzone"
             initial={{ opacity: 0 }}
@@ -149,7 +159,7 @@ export function FileUpload({
                 </div>
                 <div>
                   <p className="font-medium text-card-foreground truncate max-w-[200px]">
-                    {file.name}
+                    {displayFileName}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {parsing ? 'Parsing...' : 'Ready'}
