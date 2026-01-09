@@ -306,16 +306,9 @@ export function ResumeTemplates({ resumeText, optimizedResume, contactName }: Re
               {templatePreviews[selectedTemplate]}
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-4">
+          <div className="flex justify-end mt-4">
             <Button variant="outline" onClick={() => setPreviewOpen(false)}>
               Close
-            </Button>
-            <Button variant="gradient" onClick={() => {
-              setPreviewOpen(false);
-              handleDownloadPDF();
-            }}>
-              <Download className="w-4 h-4 mr-2" />
-              Download This Template
             </Button>
           </div>
         </DialogContent>
