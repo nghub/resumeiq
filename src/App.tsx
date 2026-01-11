@@ -19,6 +19,7 @@ import JobDrafts from "./pages/JobDrafts";
 import AdminSettings from "./pages/AdminSettings";
 import ApplicationTracker from "./pages/ApplicationTracker";
 import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,6 +85,7 @@ const App = () => {
                 <Route path="/admin-settings" element={<OwnerRoute><AdminSettings /></OwnerRoute>} />
                 <Route path="/app-tracker" element={<ApplicationTracker />} />
                 <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
