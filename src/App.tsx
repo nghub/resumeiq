@@ -18,6 +18,7 @@ import JobAutomation from "./pages/JobAutomation";
 import JobDrafts from "./pages/JobDrafts";
 import AdminSettings from "./pages/AdminSettings";
 import ApplicationTracker from "./pages/ApplicationTracker";
+import TermsOfService from "./pages/TermsOfService";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -82,6 +83,7 @@ const App = () => {
                 <Route path="/job-drafts" element={<OwnerRoute><JobDrafts /></OwnerRoute>} />
                 <Route path="/admin-settings" element={<OwnerRoute><AdminSettings /></OwnerRoute>} />
                 <Route path="/app-tracker" element={<ApplicationTracker />} />
+                <Route path="/terms" element={<TermsOfService />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
