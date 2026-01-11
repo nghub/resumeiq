@@ -128,7 +128,7 @@ export function Header({ onSnowToggle, isSnowing }: HeaderProps) {
                     <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />
-                  {isAdmin && (
+                  {isOwner && (
                     <DropdownMenuItem asChild>
                       <Link to="/admin-settings">
                         <Settings className="mr-2 h-4 w-4" />

@@ -80,7 +80,7 @@ const App = () => {
                 <Route path="/history" element={<AuthRoute><History /></AuthRoute>} />
                 <Route path="/job-automation" element={<OwnerRoute><JobAutomation /></OwnerRoute>} />
                 <Route path="/job-drafts" element={<OwnerRoute><JobDrafts /></OwnerRoute>} />
-                <Route path="/admin-settings" element={<AdminSettings />} />
+                <Route path="/admin-settings" element={<OwnerRoute><AdminSettings /></OwnerRoute>} />
                 <Route path="/app-tracker" element={<ApplicationTracker />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
