@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/components/ThemeProvider';
 import { SantaHat } from '@/components/SantaHat';
+import { Footer } from '@/components/Footer';
 import { FileText, Target, Sparkles, Wand2, History, ArrowRight, CheckCircle2 } from 'lucide-react';
 const features = [{
   icon: Target,
@@ -231,17 +232,6 @@ export default function Index() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 bg-foreground border-t border-background/10">
-        <div className="container flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <FileText className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-bold text-background">ResumeAI</span>
-          </div>
-          <p className="text-sm text-background/50">© 2024 ResumeAI. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer variant="dark" />
     </div>;
 }
