@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { FileText, Sparkles, Target, Clock, CheckCircle2, Star, Shield, Zap, Upload, ClipboardList, BarChart3, Wand2, Users } from "lucide-react";
+import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import sampleResult1 from "@/assets/sample-result-1.png";
@@ -360,26 +361,6 @@ export default function IndexV2() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 border-t border-border">
-        <div className="container">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <FileText className="w-4 h-4 text-primary-foreground" />
-              </div>
-              <span className="font-semibold">ResumeAI</span>
-              <span className="text-sm text-muted-foreground">• Job-Specific Optimization</span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <span>© 2024 ResumeAI. All rights reserved.</span>
-              <a href="#" className="hover:text-foreground transition-colors flex items-center gap-1">
-                <Shield className="w-4 h-4" />
-                Secure & Private
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>;
 }
